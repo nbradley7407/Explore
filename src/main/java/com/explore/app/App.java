@@ -33,6 +33,10 @@ public class App {
         String clientSecret = "30adea1d5ff54ddc9c0e0133d707bb56";
         String accessToken = getAccessToken(clientId, clientSecret);
         System.out.println(accessToken);
+        System.out.println(getArtist(accessToken, "4Z8W4fKeB5YxbusRsdQVPb"));
+
+        // enter a loop with user interface
+        // 
     }
 
     public static String getAccessToken(String clientId, String clientSecret) {
@@ -64,8 +68,6 @@ public class App {
                 }
                 reader.close();
 
-                System.out.println(response.toString());
-
                 // Parse the JSON response
                 JSONParser parser = new JSONParser();
                 JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
@@ -78,6 +80,45 @@ public class App {
         }
         return null;
     }
+
+    public static String[] getSongs(String accessToken, String args) {
+        return null;
+    }
+
+    public static String getArtist(String accessToken, String artistId) {
+        return get(accessToken, "artists", artistId);
+    }
+
+    public static String get(String accessToken, String subject, String propertyId) {
+        try {
+            String apiUrl = "https://api.spotify.com/v1/" + subject + "/" + propertyId;
+            URL url = new URL(apiUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // Process the information in the response
+                return response.toString();
+            } else {
+                throw new RuntimeException("HttpResponseCode: " + responseCode);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
 }
 
 
