@@ -1,20 +1,19 @@
 package com.explore.app;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.Properties;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import java.util.Scanner;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
-
-/* token URL = ("https://accounts.spotify.com/api/token"); 
-method = ("POST");
-            
-headers = "Content-Type", "application/x-www-form-urlencoded";
-
-String requestBody = "grant_type=client_credentials&client_id=e2aeffcd41484cf2a18e8e30c3288019&client_secret=30adea1d5ff54ddc9c0e0133d707bb56";
-*/ 
 
 
 /* Need to first log in
@@ -23,16 +22,17 @@ String requestBody = "grant_type=client_credentials&client_id=e2aeffcd41484cf2a1
  * search songs by given inputs
  * print inputs needed/required
  */
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+
 
 public class App {
     public static void main(String[] args) {
+
+        login();
+
         // get token
-        String clientId = "e2aeffcd41484cf2a18e8e30c3288019";
-        String clientSecret = "e823196c5aa14db6a3cd6eb57efa8bad";
+        Properties config = loadConfig("config.properties");
+        String clientId = config.getProperty("client.id");
+        String clientSecret = config.getProperty("client.secret");
         String accessToken = getAccessToken(clientId, clientSecret);
 
         // TO DO: check to see if there's a playlist called "Explore." If there is, save the ID#. If there isn't, make one and save the ID#
@@ -105,7 +105,6 @@ public class App {
     }
 
     public static String get(String accessToken, String subject, String propertyId) {
-        System.out.println(accessToken);
         try {
             String apiUrl = "https://api.spotify.com/v1/" + subject + "/" + propertyId;
             URL url = new URL(apiUrl);
@@ -162,7 +161,18 @@ public class App {
             }
         }
     }
-
+    public static void login() {
+        
+        }
+    public static Properties loadConfig(String filePath) {
+        Properties properties = new Properties();
+        try (FileInputStream fis = new FileInputStream(filePath)) {
+            properties.load(fis);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return properties;
+    }
 }
 
 
