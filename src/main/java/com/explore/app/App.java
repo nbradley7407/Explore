@@ -1,104 +1,81 @@
 package com.explore.app;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Scanner;
+
+
+/* token URL = ("https://accounts.spotify.com/api/token"); 
+method = ("POST");
+            
+headers = "Content-Type", "application/x-www-form-urlencoded";
+
+String requestBody = "grant_type=client_credentials&client_id=e2aeffcd41484cf2a18e8e30c3288019&client_secret=30adea1d5ff54ddc9c0e0133d707bb56";
+*/ 
+
+
+/* Need to first log in
+ * need a playlist to dump songs into
+ * methods to clear, delete, add to playlist
+ * search songs by given inputs
+ * print inputs needed/required
+ */
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 public class App {
     public static void main(String[] args) {
-        // Obtain the access token
-        String accessToken = getAccessToken();
-        
-        // Make API call to retrieve artist information
-        String artistInfo = getArtistInfo(accessToken, "4Z8W4fKeB5YxbusRsdQVPb");
-        System.out.println(artistInfo);
+        String clientId = "e2aeffcd41484cf2a18e8e30c3288019";
+        String clientSecret = "30adea1d5ff54ddc9c0e0133d707bb56";
+        String accessToken = getAccessToken(clientId, clientSecret);
+        System.out.println(accessToken);
     }
 
-    private static String getAccessToken() {
+    public static String getAccessToken(String clientId, String clientSecret) {
         try {
-            // Set the request URL
             URL url = new URL("https://accounts.spotify.com/api/token");
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            
-            // Set the request method
-            connection.setRequestMethod("POST");
-            
-            // Set the request headers
-            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            
-            // Set the request body
-            String requestBody = "grant_type=client_credentials&client_id=e2aeffcd41484cf2a18e8e30c3288019&client_secret=30adea1d5ff54ddc9c0e0133d707bb56";
-            connection.setDoOutput(true);
-            connection.getOutputStream().write(requestBody.getBytes());
-            
-            // Send the request
-            int responseCode = connection.getResponseCode();
-            
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                // Read the response
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-                
-                // Extract the access token from the response
-                String json = response.toString();
-                // Parse the JSON and extract the access token
-                // Assuming the access token is in the "access_token" field
-                // You might need to use a JSON library like Gson or Jackson for parsing JSON
-                String accessToken = /* Parse the JSON and extract the access token */;
-                
-                return accessToken;
-            } else {
-                System.out.println("Failed to obtain access token. Response code: " + responseCode);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        
-        return null;
-    }
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            conn.setDoOutput(true);
 
-    private static String getArtistInfo(String accessToken, String artistId) {
-        try {
-            // Set the request URL
-            URL url = new URL("https://api.spotify.com/v1/artists/" + artistId);
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            
-            // Set the request method
-            connection.setRequestMethod("GET");
-            
-            // Set the request headers
-            connection.setRequestProperty("Authorization", "Bearer " + accessToken);
-            
-            // Send the request
-            int responseCode = connection.getResponseCode();
-            
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                // Read the response
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String requestBody = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
+            byte[] postData = requestBody.getBytes(StandardCharsets.UTF_8);
+
+            // Send the request body
+            try (DataOutputStream outputStream = new DataOutputStream(conn.getOutputStream())) {
+                outputStream.write(postData);
+            }
+
+            // Check if the connection is successful
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                throw new RuntimeException("HttpResponseCode: " + responseCode);
+            } else {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder response = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) {
                     response.append(line);
                 }
                 reader.close();
-                
-                return response.toString();
-            } else {
-                System.out.println("Failed to retrieve artist information. Response code: " + responseCode);
+
+                System.out.println(response.toString());
+
+                // Parse the JSON response
+                JSONParser parser = new JSONParser();
+                JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
+                String accessToken = (String) jsonResponse.get("access_token");
+
+                return accessToken;
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
-        
         return null;
     }
 }
