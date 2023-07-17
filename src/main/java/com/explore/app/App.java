@@ -13,6 +13,8 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+
 
 
 
@@ -25,14 +27,23 @@ import java.nio.charset.StandardCharsets;
 
 
 public class App {
-    public static void main(String[] args) {
+    static Properties config;
+    static String clientId;
+    static String clientSecret;
+    static String redirectURI;
 
+
+    static {
+        config = loadConfig("config.properties");
+        clientId = config.getProperty("client.id");
+        clientSecret = config.getProperty("client.secret");
+        redirectURI = config.getProperty("redirect.uri");
+    }
+    public static void main(String[] args) {
         login();
 
         // get token
-        Properties config = loadConfig("config.properties");
-        String clientId = config.getProperty("client.id");
-        String clientSecret = config.getProperty("client.secret");
+
         String accessToken = getAccessToken(clientId, clientSecret);
 
         // TO DO: check to see if there's a playlist called "Explore." If there is, save the ID#. If there isn't, make one and save the ID#
@@ -162,7 +173,67 @@ public class App {
         }
     }
     public static void login() {
+        // get verifier and challenge
+
+        Process process = Runtime.getRuntime().exec("openssl rand -base64 32 | tr -d '+/='");
+        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String codeVerifier = reader.readLine();
+        process.waitFor();  
         
+
+        Process process2 = Runtime.getRuntime().exec(codeVerifier + " | shasum -a 256 | awk '{print $1}' | base64 | tr -d '+/=' | tr '[:upper:]' '[:lower:]'");
+        BufferedReader reader2 = new BufferedReader(new InputStreamReader(process2.getInputStream()));
+        String codeChallenge = reader2.readLine();
+        process2.waitFor(); 
+
+
+        // get authorization code
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Please visit the following URL and authorize the application: " + 
+        "https://accounts.spotify.com/authorize?response_type=code&client_id=" + clientId + "&redirect_uri=" + redirectURI + "&code_challenge=" + codeChallenge + "&code_challenge_method=S256");
+        System.out.println("Enter the code in the redirected URL: ");
+        String code = scanner.nextLine();
+
+        // execute terminal command
+        try {
+            // Set the environment variables
+            String tokenEndpoint = "https://accounts.spotify.com/api/token";
+            String authCode = code;
+
+            // Build the command
+            String[] command = {
+                "curl",
+                "-X",
+                "POST",
+                "-H",
+                "Content-Type: application/x-www-form-urlencoded",
+                "-H",
+                "Authorization: Basic " + Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes()),
+                "-d",
+                "grant_type=authorization_code&code=" + authCode + "&redirect_uri=" + redirectURI + "&code_verifier=" + codeVerifier,
+                tokenEndpoint
+            };
+
+            // Execute the command
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            Process process = processBuilder.start();
+
+            // Read the output of the command
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            // Wait for the command to complete
+            int exitCode = process.waitFor();
+            System.out.println("Command exited with code: " + exitCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        scanner.close();
+
         }
     public static Properties loadConfig(String filePath) {
         Properties properties = new Properties();
