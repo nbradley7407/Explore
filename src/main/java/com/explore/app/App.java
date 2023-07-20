@@ -12,7 +12,6 @@ import java.net.URL;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 
 
@@ -34,6 +33,7 @@ public class App {
     static String clientSecret;
     static String redirectURI;
     static String encoded;
+    static String accessToken;
 
 
     static {
@@ -48,10 +48,10 @@ public class App {
 
         // get token
 
-        String accessToken = getAccessToken(clientId, clientSecret);
+        // String accessToken = getAccessToken(clientId, clientSecret);
 
         // TO DO: check to see if there's a playlist called "Explore." If there is, save the ID#. If there isn't, make one and save the ID#
-        System.out.println(accessToken);
+        System.out.println("Your access token: " + accessToken);
         String explorePlaylist = get(accessToken, "me", "playlists");
         System.out.println(explorePlaylist);
         
@@ -149,9 +149,8 @@ public class App {
     }
 
     public static void mainLoop() {
+        Scanner scanner = new Scanner(System.in);
         while (true) {
-            Scanner scanner = new Scanner(System.in);
-
             System.out.println("What would you like to do?");
             System.out.println("1: Edit Explore playlist");
             System.out.println("2: Find new music");
@@ -181,18 +180,23 @@ public class App {
         try {    
             // Get authorization code from user
             Scanner scanner = new Scanner(System.in);
-            System.out.println("Please visit the following URL and authorize the application: " +
+            System.out.println("--------------------------------------------------------------------------------------------------- \n");
+            System.out.println("Please visit the following URL and authorize the application: \n\n" +
                     "https://accounts.spotify.com/authorize?"
                     + "response_type=code"
                     + "&client_id=" + clientId
                     + "&scope=playlist-read-private"
                     + "&redirect_uri=" + redirectURI);
-            System.out.println("Enter the code from the redirected URL into the following bash script and run in the terminal.");
-            System.out.println("curl -H \"Authorization: Basic" + encoded + "\""
-            + "-d grant_type=authorization_code "
-            + "-d code=<****YOUR CODE HERE****>"
-            + "-d redirect_uri=" + redirectURI + " https://accounts.spotify.com/api/token");
+            System.out.println("\n\nEnter the code from the redirected URL: \n\n");
             String code = scanner.nextLine();
+
+            System.out.println("\n\nRun the following bash script:\n\n");
+            System.out.println("curl -H \"Authorization: Basic " + encoded + "\" "
+            + "-d grant_type=authorization_code "
+            + "-d code=" + code + " "
+            + "-d redirect_uri=" + redirectURI + " https://accounts.spotify.com/api/token");
+            System.out.println("\n\nEnter the given access token: ");
+            accessToken = scanner.nextLine();
             scanner.close();
 
         } catch (Exception e) {
@@ -209,10 +213,4 @@ public class App {
         return properties;
     }
 }
-
-
-curl -H "Authorization: Basic <encoded>"
--d grant_type=authorization_code 
--d code=<your code> -d 
-redirect_uri=<redirect> https://accounts.spotify.com/api/token
 
