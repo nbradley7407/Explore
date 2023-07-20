@@ -10,10 +10,11 @@ import java.util.Scanner;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedReader;
-import java.io.DataOutputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-
+import com.google.gson.Gson; 
+import com.google.gson.JsonObject; 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonArray;  
 
 
 
@@ -28,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 
 
 public class App {
+    static Scanner scanner;
     static Properties config;
     static String clientId;
     static String clientSecret;
@@ -37,6 +39,7 @@ public class App {
 
 
     static {
+        scanner = new Scanner(System.in);
         config = loadConfig("config.properties");
         clientId = config.getProperty("client.id");
         clientSecret = config.getProperty("client.secret");
@@ -44,63 +47,19 @@ public class App {
         encoded = config.getProperty("encoded");
     }
     public static void main(String[] args) {
-        login();
-
-        // get token
-
-        // String accessToken = getAccessToken(clientId, clientSecret);
+        getAccessToken();
 
         // TO DO: check to see if there's a playlist called "Explore." If there is, save the ID#. If there isn't, make one and save the ID#
-        System.out.println("Your access token: " + accessToken);
         String explorePlaylist = get(accessToken, "me", "playlists");
-        System.out.println(explorePlaylist);
+        parseJSON(explorePlaylist);
         
 
         // Go to interface
         mainLoop();
+
+        scanner.close();
     }
 
-    public static String getAccessToken(String clientId, String clientSecret) {
-        try {
-            URL url = new URL("https://accounts.spotify.com/api/token");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-            conn.setDoOutput(true);
-
-            String requestBody = "grant_type=client_credentials&client_id=" + clientId + "&client_secret=" + clientSecret;
-            byte[] postData = requestBody.getBytes(StandardCharsets.UTF_8);
-
-            // Send the request body
-            try (DataOutputStream outputStream = new DataOutputStream(conn.getOutputStream())) {
-                outputStream.write(postData);
-            }
-
-            // Check if the connection is successful
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                throw new RuntimeException("HttpResponseCode: " + responseCode);
-            } else {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                // Parse the JSON response
-                JSONParser parser = new JSONParser();
-                JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
-                String accessToken = (String) jsonResponse.get("access_token");
-
-                return accessToken;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
     public static String[] getSongs(String accessToken, String args) {
         return null;
@@ -149,37 +108,35 @@ public class App {
     }
 
     public static void mainLoop() {
-        Scanner scanner = new Scanner(System.in);
         while (true) {
             System.out.println("What would you like to do?");
             System.out.println("1: Edit Explore playlist");
             System.out.println("2: Find new music");
             System.out.println("3: Exit");
             int option = scanner.nextInt();
-
+    
             switch (option) {
                 case 1:
-                    // do something
-                    scanner.close();
-                    return;
+                    // Handle option 1 - Edit Explore playlist
+                    break;
                 case 2:
-                    // something
-                    scanner.close();
-                    return;
+                    // Handle option 2 - Find new music
+                    break;
                 case 3:
-                    scanner.close();
+                    scanner.close(); // Close the Scanner only when exiting the loop
                     return;
                 default:
-                    System.out.println("Please enter a number between 1 and 2.");
-                    continue;
+                    System.out.println("Invalid input. Please enter a number between 1 and 3.");
+                    break;
             }
         }
     }
     
-    public static void login() {
+    public static void getAccessToken() {
+        // Uses standard output to help user run bash script to retrieve access token
+
         try {    
             // Get authorization code from user
-            Scanner scanner = new Scanner(System.in);
             System.out.println("--------------------------------------------------------------------------------------------------- \n");
             System.out.println("Please visit the following URL and authorize the application: \n\n" +
                     "https://accounts.spotify.com/authorize?"
@@ -190,6 +147,7 @@ public class App {
             System.out.println("\n\nEnter the code from the redirected URL: \n\n");
             String code = scanner.nextLine();
 
+            // get access token
             System.out.println("\n\nRun the following bash script:\n\n");
             System.out.println("curl -H \"Authorization: Basic " + encoded + "\" "
             + "-d grant_type=authorization_code "
@@ -197,13 +155,14 @@ public class App {
             + "-d redirect_uri=" + redirectURI + " https://accounts.spotify.com/api/token");
             System.out.println("\n\nEnter the given access token: ");
             accessToken = scanner.nextLine();
-            scanner.close();
 
         } catch (Exception e) {
             e.printStackTrace();
     }
     }
     public static Properties loadConfig(String filePath) {
+        // loads variables declared in filePath
+
         Properties properties = new Properties();
         try (FileInputStream fis = new FileInputStream(filePath)) {
             properties.load(fis);
@@ -212,5 +171,24 @@ public class App {
         }
         return properties;
     }
+
+    public static void parseJSON(String json) {
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
+
+        if (jsonObject.has("items") && jsonObject.get("items").isJsonArray()) {
+            JsonArray itemsArray = jsonObject.getAsJsonArray("items");
+            for (JsonElement itemElement : itemsArray) {
+                if (itemElement.isJsonObject()) {
+                    JsonObject playlistObject = itemElement.getAsJsonObject();
+                    String playlistName = playlistObject.get("name").getAsString();
+                    System.out.println(playlistName);
+                }
+            }
+        } else {
+            System.out.println("No playlists found in the JSON response.");
+        }
+    }
+
 }
 
