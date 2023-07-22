@@ -6,6 +6,7 @@ import java.util.Properties;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import java.util.ArrayList;
 import java.util.Scanner;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -27,15 +28,12 @@ import com.google.gson.JsonArray;
 
 public class Explore {
 
-
-
     private Scanner scanner;
     private Properties config;
     private String clientId;
     private String redirectURI;
     private String encoded;
     private String accessToken;
-
 
     public Explore() {
         this.scanner = new Scanner(System.in);
@@ -48,9 +46,19 @@ public class Explore {
         Explore explore = new Explore();
         explore.getAccessToken();
 
-        // TO DO: check to see if there's a playlist called "Explore." If there is, save the ID#. If there isn't, make one and save the ID#
+        /* TO DO: check to see if there's a playlist called "My Explore."
+         If there is, save the ID#. If there isn't, make one and save the ID# */ 
+
+         // This currently only grabs the playlist names. Doesn't check anything
         String explorePlaylist = explore.get("me", "playlists");
-        explore.parseJSON(explorePlaylist);
+        ArrayList<String> myPlaylists = explore.parseJSON(explorePlaylist);
+        if (myPlaylists.contains("Sound")) {
+            System.out.println("Contains playlist");
+        } else {
+            System.out.println("Does not contain playlist");
+        }
+
+        
         
 
         // Go to interface
@@ -59,11 +67,12 @@ public class Explore {
         explore.scanner.close();
     }
 
-
+    // unused
     private String[] getSongs(String args) {
         return null;
     }
 
+    //unused (mostly for testing)
     private String getArtistName(String artistId) {
         String response = get("artists", artistId);
         JSONParser parser = new JSONParser();
@@ -77,6 +86,7 @@ public class Explore {
         return null;
     }
 
+    // getter for JSON response
     private String get(String subject, String propertyId) {
         try {
             String apiUrl = "https://api.spotify.com/v1/" + subject + "/" + propertyId;
@@ -106,6 +116,7 @@ public class Explore {
         return null;
     }
 
+    // Interface for navigation through the program
     private void mainLoop() {
         while (true) {
             System.out.println("What would you like to do?");
@@ -116,13 +127,13 @@ public class Explore {
     
             switch (option) {
                 case 1:
-                    // Handle option 1 - Edit Explore playlist
+                    //TODO Handle option 1 - Edit Explore playlist
                     break;
                 case 2:
-                    // Handle option 2 - Find new music
+                    //TODO Handle option 2 - Find new music
                     break;
                 case 3:
-                    scanner.close(); // Close the Scanner only when exiting the loop
+                    scanner.close(); // Exit the entire program
                     return;
                 default:
                     System.out.println("Invalid input. Please enter a number between 1 and 3.");
@@ -130,10 +141,9 @@ public class Explore {
             }
         }
     }
-    
-    private void getAccessToken() {
-        // Uses standard output to help user run bash script to retrieve access token
 
+    // Use standard output to help user run bash script to retrieve access token
+    private void getAccessToken() {
         try {    
             // Get authorization code from user
             System.out.println("--------------------------------------------------------------------------------------------------- \n");
@@ -141,7 +151,7 @@ public class Explore {
                     "https://accounts.spotify.com/authorize?"
                     + "response_type=code"
                     + "&client_id=" + clientId
-                    + "&scope=playlist-read-private"
+                    + "&scope=playlist-modify-private"
                     + "&redirect_uri=" + redirectURI);
             System.out.println("\n\nEnter the code from the redirected URL: \n\n");
             String code = scanner.nextLine();
@@ -159,6 +169,7 @@ public class Explore {
             e.printStackTrace();
     }
     }
+    
     private Properties loadConfig(String filePath) {
         // loads variables declared in filePath
 
@@ -171,9 +182,10 @@ public class Explore {
         return properties;
     }
 
-    private void parseJSON(String json) {
+    private ArrayList<String> parseJSON(String json) {
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
+        ArrayList<String> jsonItems = new ArrayList<>();
 
         if (jsonObject.has("items") && jsonObject.get("items").isJsonArray()) {
             JsonArray itemsArray = jsonObject.getAsJsonArray("items");
@@ -181,12 +193,13 @@ public class Explore {
                 if (itemElement.isJsonObject()) {
                     JsonObject playlistObject = itemElement.getAsJsonObject();
                     String playlistName = playlistObject.get("name").getAsString();
-                    System.out.println(playlistName);
+                    jsonItems.add(playlistName);
                 }
             }
         } else {
             System.out.println("No playlists found in the JSON response.");
         }
+        return jsonItems;
     }
 
 }
