@@ -19,11 +19,11 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;  
 
 
-/* Need to first log in
- * need a playlist to dump songs into
- * methods to clear, delete, add to playlist
- * search songs by given inputs
- * print inputs needed/required
+/* TODO
+ * method to search recommendations
+ * CRUD methods for "My Explore" playlist songs
+ * figure out how to do Auth without copy/pasting into terminal manually
+ * handling of refresh tokens
  */
 
 
@@ -48,30 +48,27 @@ public class Explore {
     public static void main(String[] args) {
         Explore explore = new Explore();
         explore.getAccessToken();
-
-        /* TO DO: check to see if there's a playlist called "My Explore."
-         If there is, save the ID#. If there isn't, make one and save the ID# */ 
-
-         // This currently only grabs the playlist names. Doesn't check anything
-        String explorePlaylist = explore.get("me", "playlists");
-        ArrayList<String> myPlaylists = explore.parseJSON(explorePlaylist);
-        for (String item : myPlaylists) {
-            System.out.println(item);
-        }
-        System.out.println(!myPlaylists.contains("My Explore"));
-        if (!myPlaylists.contains("My Explore")) {
-            System.out.println("Creating \"My Explore\" playlist.");
-            explore.createPlaylist();
-        } 
-
-        // Go to interface
+        explore.checkPlaylists();
         explore.mainLoop();
-
         explore.scanner.close();
     }
 
+    // Checks if "My Explore" exists in your playlists. Creates it if it doesn't
+    // WARNING - Spotify API takes some time to recognize this new playlist. May recreate if ran again too soon
+    private void checkPlaylists() {
+        String explorePlaylist = get("me", "playlists");
+        ArrayList<String> myPlaylists = parseJSON(explorePlaylist);
+        for (String item : myPlaylists) {
+            System.out.println(item);
+        }
+        if (!myPlaylists.contains("My Explore")) {
+            System.out.println("Creating \"My Explore\" playlist.");
+            createPlaylist();
+        } 
+    }
+    
     // unused
-    private String[] getSongs(String args) {
+    private String[] getRecommendations(String args) {
         return null;
     }
 
