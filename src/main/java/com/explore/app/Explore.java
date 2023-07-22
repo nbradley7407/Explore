@@ -11,6 +11,7 @@ import java.util.Scanner;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedReader;
+import java.io.OutputStream;
 import java.io.InputStreamReader;
 import com.google.gson.Gson; 
 import com.google.gson.JsonObject; 
@@ -30,17 +31,19 @@ public class Explore {
 
     private Scanner scanner;
     private Properties config;
+    private String userId;
     private String clientId;
     private String redirectURI;
     private String encoded;
     private String accessToken;
 
     public Explore() {
-        this.scanner = new Scanner(System.in);
-        this.config = loadConfig("config.properties");
-        this.clientId = config.getProperty("client.id");
+        this.scanner     = new Scanner(System.in);
+        this.config      = loadConfig("config.properties");
+        this.userId      = config.getProperty("user.id");
+        this.clientId    = config.getProperty("client.id");
         this.redirectURI = config.getProperty("redirect.uri");
-        this.encoded = config.getProperty("encoded");
+        this.encoded     = config.getProperty("encoded");
     }
     public static void main(String[] args) {
         Explore explore = new Explore();
@@ -52,14 +55,14 @@ public class Explore {
          // This currently only grabs the playlist names. Doesn't check anything
         String explorePlaylist = explore.get("me", "playlists");
         ArrayList<String> myPlaylists = explore.parseJSON(explorePlaylist);
-        if (myPlaylists.contains("Sound")) {
-            System.out.println("Contains playlist");
-        } else {
-            System.out.println("Does not contain playlist");
+        for (String item : myPlaylists) {
+            System.out.println(item);
         }
-
-        
-        
+        System.out.println(!myPlaylists.contains("My Explore"));
+        if (!myPlaylists.contains("My Explore")) {
+            System.out.println("Creating \"My Explore\" playlist.");
+            explore.createPlaylist();
+        } 
 
         // Go to interface
         explore.mainLoop();
@@ -114,6 +117,25 @@ public class Explore {
             e.printStackTrace();
         }
         return null;
+    }
+
+    //TODO
+    private void createPlaylist() {
+        try {
+            URL url = new URL("https://api.spotify.com/v1/users/" + userId + "/playlists");
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            conn.setDoOutput(true);
+            String jsonInputString = "{\"name\": \"My Explore\", \"public\": \"false\"}";
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);			
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     // Interface for navigation through the program
