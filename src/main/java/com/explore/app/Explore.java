@@ -17,9 +17,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;  
 
 
-
-
-
 /* Need to first log in
  * need a playlist to dump songs into
  * methods to clear, delete, add to playlist
@@ -28,45 +25,47 @@ import com.google.gson.JsonArray;
  */
 
 
-public class App {
-    static Scanner scanner;
-    static Properties config;
-    static String clientId;
-    static String clientSecret;
-    static String redirectURI;
-    static String encoded;
-    static String accessToken;
+public class Explore {
 
 
-    static {
-        scanner = new Scanner(System.in);
-        config = loadConfig("config.properties");
-        clientId = config.getProperty("client.id");
-        clientSecret = config.getProperty("client.secret");
-        redirectURI = config.getProperty("redirect.uri");
-        encoded = config.getProperty("encoded");
+
+    private Scanner scanner;
+    private Properties config;
+    private String clientId;
+    private String redirectURI;
+    private String encoded;
+    private String accessToken;
+
+
+    public Explore() {
+        this.scanner = new Scanner(System.in);
+        this.config = loadConfig("config.properties");
+        this.clientId = config.getProperty("client.id");
+        this.redirectURI = config.getProperty("redirect.uri");
+        this.encoded = config.getProperty("encoded");
     }
     public static void main(String[] args) {
-        getAccessToken();
+        Explore explore = new Explore();
+        explore.getAccessToken();
 
         // TO DO: check to see if there's a playlist called "Explore." If there is, save the ID#. If there isn't, make one and save the ID#
-        String explorePlaylist = get(accessToken, "me", "playlists");
-        parseJSON(explorePlaylist);
+        String explorePlaylist = explore.get("me", "playlists");
+        explore.parseJSON(explorePlaylist);
         
 
         // Go to interface
-        mainLoop();
+        explore.mainLoop();
 
-        scanner.close();
+        explore.scanner.close();
     }
 
 
-    public static String[] getSongs(String accessToken, String args) {
+    private String[] getSongs(String args) {
         return null;
     }
 
-    public static String getArtistName(String accessToken, String artistId) {
-        String response = get(accessToken, "artists", artistId);
+    private String getArtistName(String artistId) {
+        String response = get("artists", artistId);
         JSONParser parser = new JSONParser();
         try {
             JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
@@ -78,7 +77,7 @@ public class App {
         return null;
     }
 
-    public static String get(String accessToken, String subject, String propertyId) {
+    private String get(String subject, String propertyId) {
         try {
             String apiUrl = "https://api.spotify.com/v1/" + subject + "/" + propertyId;
             URL url = new URL(apiUrl);
@@ -107,7 +106,7 @@ public class App {
         return null;
     }
 
-    public static void mainLoop() {
+    private void mainLoop() {
         while (true) {
             System.out.println("What would you like to do?");
             System.out.println("1: Edit Explore playlist");
@@ -132,7 +131,7 @@ public class App {
         }
     }
     
-    public static void getAccessToken() {
+    private void getAccessToken() {
         // Uses standard output to help user run bash script to retrieve access token
 
         try {    
@@ -160,7 +159,7 @@ public class App {
             e.printStackTrace();
     }
     }
-    public static Properties loadConfig(String filePath) {
+    private Properties loadConfig(String filePath) {
         // loads variables declared in filePath
 
         Properties properties = new Properties();
@@ -172,7 +171,7 @@ public class App {
         return properties;
     }
 
-    public static void parseJSON(String json) {
+    private void parseJSON(String json) {
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
 
