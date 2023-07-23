@@ -54,7 +54,6 @@ public class Explore {
     }
 
     // Checks if "My Explore" exists in your playlists. Creates it if it doesn't
-    // WARNING - Spotify API takes some time to recognize this new playlist. May recreate if ran again too soon
     private void checkPlaylists() {
         String explorePlaylist = get("me", "playlists");
         ArrayList<String> myPlaylists = parseJSON(explorePlaylist);
@@ -170,17 +169,18 @@ public class Explore {
                     "https://accounts.spotify.com/authorize?"
                     + "response_type=code"
                     + "&client_id=" + clientId
-                    + "&scope=playlist-modify-private"
+                    + "&scope=playlist-modify-private+playlist-read-private"
                     + "&redirect_uri=" + redirectURI);
             System.out.println("\n\nEnter the code from the redirected URL: \n\n");
             String code = scanner.nextLine();
 
             // get access token
             System.out.println("\n\nRun the following bash script:\n\n");
-            System.out.println("curl -H \"Authorization: Basic " + encoded + "\" "
+            System.out.println("echo\n\ncurl -s -H \"Authorization: Basic " + encoded + "\" "
             + "-d grant_type=authorization_code "
             + "-d code=" + code + " "
-            + "-d redirect_uri=" + redirectURI + " https://accounts.spotify.com/api/token");
+            + "-d redirect_uri=" + redirectURI + " https://accounts.spotify.com/api/token " 
+            + "| jq -r '.access_token'");
             System.out.println("\n\nEnter the given access token: ");
             accessToken = scanner.nextLine();
 
