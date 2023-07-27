@@ -55,8 +55,8 @@ public class Explore {
 
     // Checks if "My Explore" exists in your playlists. Creates it if it doesn't
     private void checkPlaylists() {
-        String explorePlaylist = get("me", "playlists");
-        ArrayList<String> myPlaylists = parseJSON(explorePlaylist);
+        String myPlaylistData = get("me/playlists");
+        ArrayList<String> myPlaylists = parseJSON(myPlaylistData, "name");
         for (String item : myPlaylists) {
             System.out.println(item);
         }
@@ -66,14 +66,73 @@ public class Explore {
         } 
     }
     
-    // unused
-    private String[] getRecommendations(String args) {
+    //TODO
+    private ArrayList<String> getRecommendations(int limit) {      
+        String market = "US";  
+        try {
+            String apiUrl = "https://api.spotify.com/v1/recommendations";
+            URL url = new URL(apiUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode == 200) {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+
+                // Process the information in the response
+                String raw = response.toString();
+                ArrayList<String> res = parseJSON(raw, "name");
+                return res;
+
+            } else {
+                throw new RuntimeException("HttpResponseCode: " + responseCode);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return null;
+
+        /* 
+         * for (int i=0;i<recommendationNames.size();i++) {
+            System.out.println(recommendationData);
+        }
+        */
+    }
+
+    private void findNewMusic(){
+        while (true) {
+            System.out.println("What would you like to do?");
+            System.out.println("1: Get recommendations");
+            System.out.println("2: See Genre Seeds");
+            System.out.println("3: Exit");
+            int option = scanner.nextInt();
+    
+            switch (option) {
+                case 1:
+                    getRecommendations(10);
+                    break;
+                case 2:
+                    seeGenreSeeds();
+                    break;
+                case 3:
+                    return;
+                default:
+                    System.out.println("Invalid input. Please enter a number between x and y.");
+                    break;
+            }
+        }
     }
 
     //unused (mostly for testing)
     private String getArtistName(String artistId) {
-        String response = get("artists", artistId);
+        String response = get("artists" + "/" + artistId);
         JSONParser parser = new JSONParser();
         try {
             JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
@@ -85,10 +144,10 @@ public class Explore {
         return null;
     }
 
-    // getter for JSON response
-    private String get(String subject, String propertyId) {
+    // getter for basic JSON response
+    private String get(String endpoint) {
         try {
-            String apiUrl = "https://api.spotify.com/v1/" + subject + "/" + propertyId;
+            String apiUrl = "https://api.spotify.com/v1/" + endpoint;
             URL url = new URL(apiUrl);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
@@ -115,7 +174,7 @@ public class Explore {
         return null;
     }
 
-    //TODO
+    // create "My Explore" playlist
     private void createPlaylist() {
         try {
             URL url = new URL("https://api.spotify.com/v1/users/" + userId + "/playlists");
@@ -148,7 +207,7 @@ public class Explore {
                     //TODO Handle option 1 - Edit Explore playlist
                     break;
                 case 2:
-                    //TODO Handle option 2 - Find new music
+                    findNewMusic();
                     break;
                 case 3:
                     scanner.close(); // Exit the entire program
@@ -189,6 +248,7 @@ public class Explore {
     }
     }
     
+    // load sensitive data
     private Properties loadConfig(String filePath) {
         // loads variables declared in filePath
 
@@ -201,7 +261,8 @@ public class Explore {
         return properties;
     }
 
-    private ArrayList<String> parseJSON(String json) {
+    // returns a list of specified key values from Json data
+    private ArrayList<String> parseJSON(String json, String key) {
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
         ArrayList<String> jsonItems = new ArrayList<>();
@@ -210,16 +271,24 @@ public class Explore {
             JsonArray itemsArray = jsonObject.getAsJsonArray("items");
             for (JsonElement itemElement : itemsArray) {
                 if (itemElement.isJsonObject()) {
-                    JsonObject playlistObject = itemElement.getAsJsonObject();
-                    String playlistName = playlistObject.get("name").getAsString();
-                    jsonItems.add(playlistName);
+                    JsonObject itemData = itemElement.getAsJsonObject();
+                    jsonItems.add(itemData.get(key).getAsString());
                 }
             }
         } else {
-            System.out.println("No playlists found in the JSON response.");
+            System.out.println("None found in the JSON response.");
         }
         return jsonItems;
     }
 
+    private void seeGenreSeeds() {
+        String genreData = get("recommendations/available-genre-seeds");
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(genreData, JsonObject.class);
+        JsonArray itemsArray = jsonObject.getAsJsonArray("genres");
+        for (JsonElement genre : itemsArray) {
+            System.out.println(genre.getAsString());
+        }
+    }
 }
 
