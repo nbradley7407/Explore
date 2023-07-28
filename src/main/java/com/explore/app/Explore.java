@@ -17,13 +17,18 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject; 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;  
+import com.google.gson.JsonParser;
 
 
 /* TODO
- * method to search recommendations
+ * MAIN GOAL: finish get recommendations
+ *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them?
+ *     - GET /search ?
+ * Would be good to utilize GET /audio-features to understand Spotify's ranking system
  * CRUD methods for "My Explore" playlist songs
  * figure out how to do Auth without copy/pasting into terminal manually
  * handling of refresh tokens
+ * 
  */
 
 
@@ -113,6 +118,7 @@ public class Explore {
             System.out.println("2: See Genre Seeds");
             System.out.println("3: Exit");
             int option = scanner.nextInt();
+            scanner.nextLine();
     
             switch (option) {
                 case 1:
@@ -199,25 +205,39 @@ public class Explore {
             System.out.println("What would you like to do?");
             System.out.println("1: Edit Explore playlist");
             System.out.println("2: Find new music");
-            System.out.println("3: Exit");
-            int option = scanner.nextInt();
+            System.out.println("3: Get audio features of a trackID");
+            System.out.println("4: Exit");
     
-            switch (option) {
-                case 1:
-                    //TODO Handle option 1 - Edit Explore playlist
-                    break;
-                case 2:
-                    findNewMusic();
-                    break;
-                case 3:
-                    scanner.close(); // Exit the entire program
-                    return;
-                default:
-                    System.out.println("Invalid input. Please enter a number between 1 and 3.");
-                    break;
+            if (scanner.hasNextInt()) {
+                int option = scanner.nextInt();
+                scanner.nextLine(); // Consume the newline character after reading the integer
+    
+                switch (option) {
+                    case 1:
+                        // TODO: Handle option 1 - Edit Explore playlist
+                        break;
+                    case 2:
+                        findNewMusic();
+                        break;
+                    case 3:
+                        System.out.println("Enter the trackID you want to get features from");
+                        String track = scanner.nextLine();
+                        getAudioFeatures(track);
+                        break;
+                    case 4:
+                        scanner.close(); // Exit the entire program
+                        return;
+                    default:
+                        System.out.println("Invalid input. Please enter a number between 1 and 3.");
+                        break;
+                }
+            } else {
+                scanner.nextLine();
+                System.out.println("Invalid input. Please enter a number between 1 and 4.");
             }
         }
     }
+    
 
     // Use standard output to help user run bash script to retrieve access token
     private void getAccessToken() {
@@ -266,7 +286,7 @@ public class Explore {
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(json, JsonObject.class);
         ArrayList<String> jsonItems = new ArrayList<>();
-
+    
         if (jsonObject.has("items") && jsonObject.get("items").isJsonArray()) {
             JsonArray itemsArray = jsonObject.getAsJsonArray("items");
             for (JsonElement itemElement : itemsArray) {
@@ -275,11 +295,26 @@ public class Explore {
                     jsonItems.add(itemData.get(key).getAsString());
                 }
             }
+        } else if (jsonObject.has(key)) {
+            JsonElement element = jsonObject.get(key);
+            if (element.isJsonArray()) {
+                JsonArray jsonArray = element.getAsJsonArray();
+                for (JsonElement jsonElement : jsonArray) {
+                    if (jsonElement.isJsonObject()) {
+                        JsonObject itemData = jsonElement.getAsJsonObject();
+                        jsonItems.add(itemData.toString());
+                    }
+                }
+            } else {
+                jsonItems.add(element.getAsString());
+            }
         } else {
             System.out.println("None found in the JSON response.");
         }
         return jsonItems;
     }
+    
+    
 
     private void seeGenreSeeds() {
         String genreData = get("recommendations/available-genre-seeds");
@@ -289,6 +324,19 @@ public class Explore {
         for (JsonElement genre : itemsArray) {
             System.out.println(genre.getAsString());
         }
+    }
+
+    private void getAudioFeatures(String trackId) {
+        String features = get("audio-features" + "?ids=" + trackId);
+    ArrayList<String> featureList = parseJSON(features, "audio_features");
+    for (String item : featureList) {
+        // Parse the JSON string and pretty-print it
+        JsonParser parser = new JsonParser();
+        JsonElement jsonElement = parser.parse(item);
+        Gson gson = new Gson();
+        String prettyJson = gson.toJson(jsonElement);
+        System.out.println(prettyJson);
+    }
     }
 }
 
