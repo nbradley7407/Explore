@@ -3,9 +3,6 @@ package com.explore.app;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.net.HttpURLConnection;
@@ -21,13 +18,14 @@ import com.google.gson.JsonArray;
 
 /* TODO
  * MAIN GOAL: finish get recommendations
+ *     - Need to find good way of building the query off of given inputs
+ *          - note: need '&' between params and '%2' between lists items (like artists)
  *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them?
- *     - GET /search ?
- * Would be good to utilize GET /audio-features to understand Spotify's ranking system
+ *     - Maybe use Spotify's /search endpoint?
+ * 
  * CRUD methods for "My Explore" playlist songs
  * figure out how to do Auth without copy/pasting into terminal manually
  * handling of refresh tokens
- * 
  */
 
 
@@ -123,12 +121,75 @@ public class Explore {
     }
 
     //TODO
+    // Should add an exit from anywhere
     private ArrayList<String> getRecommendations() {
         ArrayList<String> recs = new ArrayList<>();
         String market = "US";
+        String recQuery = "recommendations?market=US";
 
 
         System.out.println("Enter values for each of the following, or press Enter to skip:");
+
+        // limit input
+        System.out.print("Limit number of recommendations (Enter a number between 1-100): ");
+        String limitInput = scanner.nextLine();
+        int limit = -1; // Default value or an invalid value
+        if (!limitInput.isEmpty()) {
+            limit = Integer.parseInt(limitInput);
+            if (limit < 1 || limit > 100) {
+                System.out.println("Invalid input for limit. It should be between 1 and 100");
+                limit = -1; // Reset to default value
+            } else {
+                recQuery += "&limit=" + limitInput;
+            }
+        }
+
+        // seed_artists input
+        System.out.print("seed_artists (Enter an artist id): ");
+        String seedArtistInput = scanner.nextLine();
+        if (!seedArtistInput.isEmpty()) {
+            recQuery += "&seed_artists=" + seedArtistInput;
+        }
+
+        // seed_genres input
+        ArrayList<String> genreList = new ArrayList<>();
+        while (true) {
+            System.out.print("seed_genres (Enter a genre. To continue, press enter.): ");
+            String seedGenresInput = scanner.nextLine();
+            if (!seedGenresInput.isEmpty()) {
+                    genreList.add(seedGenresInput);
+            } else {
+                break;
+            }
+        }
+        // format genre list 
+        if (!genreList.isEmpty()) {
+            recQuery += "&seed_genres=";
+            for (String genre : genreList) {
+                recQuery += genre + "%2";
+            }
+            recQuery = recQuery.substring(0, (recQuery.length() - 2));
+        }
+
+        // seed_genres input
+        ArrayList<String> trackList = new ArrayList<>();
+        while (true) {
+            System.out.print("seed_tracks (Enter a track id. To continue, press enter.): ");
+            String seedTracksInput = scanner.nextLine();
+            if (!seedTracksInput.isEmpty()) {
+                    trackList.add(seedTracksInput);
+            } else {
+                break;
+            }
+        }
+        // format genre list 
+        if (!trackList.isEmpty()) {
+            recQuery += "&seed_genres=";
+            for (String track : trackList) {
+                recQuery += track + "%2";
+            }
+            recQuery = recQuery.substring(0, (recQuery.length() - 2));
+        }
 
         // target_acousticness input
         System.out.print("target_acousticness (Enter a number between 0.0-1.0): ");
@@ -139,6 +200,8 @@ public class Explore {
             if (targetAcousticness < 0.0 || targetAcousticness > 1.0) {
                 System.out.println("Invalid input for target_acousticness. It should be between 0.0 and 1.0");
                 targetAcousticness = -1; // Reset to default value
+            } else {
+                recQuery += "target_acousticness=" + acousticnessInput + "&";
             }
         }
 
@@ -298,16 +361,10 @@ public class Explore {
             }
         }
 
-        String recQuery = "";
-        get(recQuery);
+        String recsJson = get(recQuery);
 
 
         return recs;
-        /* 
-         * for (int i=0;i<recommendationNames.size();i++) {
-            System.out.println(recommendationData);
-        }
-        */
     }
 
     // interface for finding music and getting music info
@@ -323,7 +380,7 @@ public class Explore {
     
             switch (option) {
                 case 1:
-                    getRecommendations(10);
+                    getRecommendations();
                     break;
                 case 2:
                     seeGenreSeeds();
@@ -467,6 +524,5 @@ public class Explore {
         return jsonItems;
     }
     
-    private String 
 }
 
