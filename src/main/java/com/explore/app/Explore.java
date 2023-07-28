@@ -17,7 +17,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject; 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;  
-import com.google.gson.JsonParser;
 
 
 /* TODO
@@ -58,6 +57,39 @@ public class Explore {
         explore.scanner.close();
     }
 
+    // Interface for navigation through the program
+    private void mainLoop() {
+        while (true) {
+            System.out.println("What would you like to do?");
+            System.out.println("1: Edit Explore playlist");
+            System.out.println("2: Find new music");
+            System.out.println("3: Exit");
+    
+            if (scanner.hasNextInt()) {
+                int option = scanner.nextInt();
+                scanner.nextLine(); // Consume the newline character after reading the integer
+    
+                switch (option) {
+                    case 1:
+                        // TODO: Handle option 1 - Edit Explore playlist
+                        break;
+                    case 2:
+                        findNewMusic();
+                        break;
+                    case 3:
+                        scanner.close(); // Exit the entire program
+                        return;
+                    default:
+                        System.out.println("Invalid input. Please enter a number between 1 and 3.");
+                        break;
+                }
+            } else {
+                scanner.nextLine();
+                System.out.println("Invalid input. Please enter a number between 1 and 4.");
+            }
+        }
+    }
+
     // Checks if "My Explore" exists in your playlists. Creates it if it doesn't
     private void checkPlaylists() {
         String myPlaylistData = get("me/playlists");
@@ -71,39 +103,206 @@ public class Explore {
         } 
     }
     
-    //TODO
-    private ArrayList<String> getRecommendations(int limit) {      
-        String market = "US";  
+    // create "My Explore" playlist
+    private void createPlaylist() {
         try {
-            String apiUrl = "https://api.spotify.com/v1/recommendations";
-            URL url = new URL(apiUrl);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
+            URL url = new URL("https://api.spotify.com/v1/users/" + userId + "/playlists");
+            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                // Process the information in the response
-                String raw = response.toString();
-                ArrayList<String> res = parseJSON(raw, "name");
-                return res;
-
-            } else {
-                throw new RuntimeException("HttpResponseCode: " + responseCode);
+            conn.setDoOutput(true);
+            String jsonInputString = "{\"name\": \"My Explore\", \"public\": \"false\"}";
+            try(OutputStream os = conn.getOutputStream()) {
+                byte[] input = jsonInputString.getBytes("utf-8");
+                os.write(input, 0, input.length);			
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return null;
+    }
 
+    //TODO
+    private ArrayList<String> getRecommendations() {
+        ArrayList<String> recs = new ArrayList<>();
+        String market = "US";
+
+
+        System.out.println("Enter values for each of the following, or press Enter to skip:");
+
+        // target_acousticness input
+        System.out.print("target_acousticness (Enter a number between 0.0-1.0): ");
+        String acousticnessInput = scanner.nextLine();
+        double targetAcousticness = -1; // Default value or an invalid value
+        if (!acousticnessInput.isEmpty()) {
+            targetAcousticness = Double.parseDouble(acousticnessInput);
+            if (targetAcousticness < 0.0 || targetAcousticness > 1.0) {
+                System.out.println("Invalid input for target_acousticness. It should be between 0.0 and 1.0");
+                targetAcousticness = -1; // Reset to default value
+            }
+        }
+
+        // target_danceability input
+        System.out.print("target_danceability (Enter a number between 0.0-1.0): ");
+        String danceabilityInput = scanner.nextLine();
+        double targetDanceability = -1;
+        if (!danceabilityInput.isEmpty()) {
+            targetDanceability = Double.parseDouble(danceabilityInput);
+            if (targetDanceability < 0.0 || targetDanceability > 1.0) {
+                System.out.println("Invalid input for target_danceability. It should be between 0.0 and 1.0");
+                targetDanceability = -1;
+            }
+        }
+
+        // target_duration_ms input
+        System.out.print("target_duration_ms (Enter a positive number): ");
+        String durationInput = scanner.nextLine();
+        long targetDurationMs = -1;
+        if (!durationInput.isEmpty()) {
+            targetDurationMs = Long.parseLong(durationInput);
+            if (targetDurationMs <= 0) {
+                System.out.println("Invalid input for target_duration_ms. It should be a positive number");
+                targetDurationMs = -1;
+            }
+        }
+
+        // target_energy input
+        System.out.print("target_energy (Enter a number between 0.0-1.0): ");
+        String energyInput = scanner.nextLine();
+        double targetEnergy = -1;
+        if (!energyInput.isEmpty()) {
+            targetEnergy = Double.parseDouble(energyInput);
+            if (targetEnergy < 0.0 || targetEnergy > 1.0) {
+                System.out.println("Invalid input for target_energy. It should be between 0.0 and 1.0");
+                targetEnergy = -1;
+            }
+        }
+
+        // target_instrumentalness input
+        System.out.print("target_instrumentalness (Enter a number between 0.0-1.0): ");
+        String instrumentalnessInput = scanner.nextLine();
+        double targetInstrumentalness = -1;
+        if (!instrumentalnessInput.isEmpty()) {
+            targetInstrumentalness = Double.parseDouble(instrumentalnessInput);
+            if (targetInstrumentalness < 0.0 || targetInstrumentalness > 1.0) {
+                System.out.println("Invalid input for target_instrumentalness. It should be between 0.0 and 1.0");
+                targetInstrumentalness = -1;
+            }
+        }
+
+        // target_key input
+        System.out.print("target_key (Enter an integer between 0-11): ");
+        String keyInput = scanner.nextLine();
+        int targetKey = -1;
+        if (!keyInput.isEmpty()) {
+            targetKey = Integer.parseInt(keyInput);
+            if (targetKey < 0 || targetKey > 11) {
+                System.out.println("Invalid input for target_key. It should be between 0 and 11");
+                targetKey = -1;
+            }
+        }
+
+        // target_liveness input
+        System.out.print("target_liveness (Enter a number between 0.0-1.0): ");
+        String livenessInput = scanner.nextLine();
+        double targetLiveness = -1;
+        if (!livenessInput.isEmpty()) {
+            targetLiveness = Double.parseDouble(livenessInput);
+            if (targetLiveness < 0.0 || targetLiveness > 1.0) {
+                System.out.println("Invalid input for target_liveness. It should be between 0.0 and 1.0");
+                targetLiveness = -1;
+            }
+        }
+
+        // target_loudness input
+        System.out.print("target_loudness (Enter a number between -60 to 0): ");
+        String loudnessInput = scanner.nextLine();
+        double targetLoudness = -1;
+        if (!loudnessInput.isEmpty()) {
+            targetLoudness = Double.parseDouble(loudnessInput);
+            if (targetLoudness < -60 || targetLoudness > 0) {
+                System.out.println("Invalid input for target_loudness. It should be between -60 and 0");
+                targetLoudness = -1;
+            }
+        }
+
+        // target_mode input
+        System.out.print("target_mode (Enter 0 for minor, 1 for major): ");
+        String modeInput = scanner.nextLine();
+        int targetMode = -1;
+        if (!modeInput.isEmpty()) {
+            targetMode = Integer.parseInt(modeInput);
+            if (targetMode != 0 && targetMode != 1) {
+                System.out.println("Invalid input for target_mode. It should be 0 for minor or 1 for major");
+                targetMode = -1;
+            }
+        }
+
+        // target_popularity input
+        System.out.print("target_popularity (Enter a number between 0-100): ");
+        String popularityInput = scanner.nextLine();
+        int targetPopularity = -1;
+        if (!popularityInput.isEmpty()) {
+            targetPopularity = Integer.parseInt(popularityInput);
+            if (targetPopularity < 0 || targetPopularity > 100) {
+                System.out.println("Invalid input for target_popularity. It should be between 0 and 100");
+                targetPopularity = -1;
+            }
+        }
+
+        // target_speechiness input
+        System.out.print("target_speechiness (Enter a number between 0.0-1.0): ");
+        String speechinessInput = scanner.nextLine();
+        double targetSpeechiness = -1; 
+        if (!speechinessInput.isEmpty()) {
+            targetSpeechiness = Double.parseDouble(speechinessInput);
+            if (targetSpeechiness < 0.0 || targetSpeechiness > 1.0) {
+                System.out.println("Invalid input for target_speechiness. It should be between 0.0 and 1.0");
+                targetSpeechiness = -1; 
+            }
+        }
+
+        // target_tempo input
+        System.out.print("target_tempo (Enter a positive number): ");
+        String tempoInput = scanner.nextLine();
+        double targetTempo = -1; 
+        if (!tempoInput.isEmpty()) {
+            targetTempo = Double.parseDouble(tempoInput);
+            if (targetTempo <= 0) {
+                System.out.println("Invalid input for target_tempo. It should be a positive number");
+                targetTempo = -1; 
+            }
+        }
+
+        // target_time_signature input
+        System.out.print("target_time_signature (Enter a positive integer): ");
+        String timeSignatureInput = scanner.nextLine();
+        int targetTimeSignature = -1;
+        if (!timeSignatureInput.isEmpty()) {
+            targetTimeSignature = Integer.parseInt(timeSignatureInput);
+            if (targetTimeSignature <= 0) {
+                System.out.println("Invalid input for target_time_signature. It should be a positive integer");
+                targetTimeSignature = -1;
+            }
+        }
+
+        // target_valence input
+        System.out.print("target_valence (Enter a number between 0.0-1.0): ");
+        String valenceInput = scanner.nextLine();
+        double targetValence = -1;
+        if (!valenceInput.isEmpty()) {
+            targetValence = Double.parseDouble(valenceInput);
+            if (targetValence < 0.0 || targetValence > 1.0) {
+                System.out.println("Invalid input for target_valence. It should be between 0.0 and 1.0");
+                targetValence = -1; 
+            }
+        }
+
+        String recQuery = "";
+        get(recQuery);
+
+
+        return recs;
         /* 
          * for (int i=0;i<recommendationNames.size();i++) {
             System.out.println(recommendationData);
@@ -111,12 +310,14 @@ public class Explore {
         */
     }
 
+    // interface for finding music and getting music info
     private void findNewMusic(){
         while (true) {
             System.out.println("What would you like to do?");
             System.out.println("1: Get recommendations");
             System.out.println("2: See Genre Seeds");
-            System.out.println("3: Exit");
+            System.out.println("3: Get audio features of a trackID");
+            System.out.println("4: Exit");
             int option = scanner.nextInt();
             scanner.nextLine();
     
@@ -128,6 +329,11 @@ public class Explore {
                     seeGenreSeeds();
                     break;
                 case 3:
+                    System.out.println("Enter the trackID you want to get features from");
+                    String track = scanner.nextLine();
+                    getAudioFeatures(track);
+                    break;
+                case 4:
                     return;
                 default:
                     System.out.println("Invalid input. Please enter a number between x and y.");
@@ -136,18 +342,24 @@ public class Explore {
         }
     }
 
-    //unused (mostly for testing)
-    private String getArtistName(String artistId) {
-        String response = get("artists" + "/" + artistId);
-        JSONParser parser = new JSONParser();
-        try {
-            JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
-            String artistName = (String) jsonResponse.get("name");
-            return artistName;
-        } catch (ParseException e) {
-            e.printStackTrace();
+    // list options of genre seeds to use in recommendations
+    private void seeGenreSeeds() {
+        String genreData = get("recommendations/available-genre-seeds");
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(genreData, JsonObject.class);
+        JsonArray itemsArray = jsonObject.getAsJsonArray("genres");
+        for (JsonElement genre : itemsArray) {
+            System.out.println(genre.getAsString());
         }
-        return null;
+    }
+
+    // see audio features of a given track id
+    private void getAudioFeatures(String trackId) {
+        String features = get("audio-features" + "?ids=" + trackId);
+        ArrayList<String> featureList = parseJSON(features, "audio_features");
+        for (String item : featureList) {
+            System.out.println(item);
+        }
     }
 
     // getter for basic JSON response
@@ -179,65 +391,6 @@ public class Explore {
         }
         return null;
     }
-
-    // create "My Explore" playlist
-    private void createPlaylist() {
-        try {
-            URL url = new URL("https://api.spotify.com/v1/users/" + userId + "/playlists");
-            HttpURLConnection conn = (HttpURLConnection)url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-            conn.setDoOutput(true);
-            String jsonInputString = "{\"name\": \"My Explore\", \"public\": \"false\"}";
-            try(OutputStream os = conn.getOutputStream()) {
-                byte[] input = jsonInputString.getBytes("utf-8");
-                os.write(input, 0, input.length);			
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    // Interface for navigation through the program
-    private void mainLoop() {
-        while (true) {
-            System.out.println("What would you like to do?");
-            System.out.println("1: Edit Explore playlist");
-            System.out.println("2: Find new music");
-            System.out.println("3: Get audio features of a trackID");
-            System.out.println("4: Exit");
-    
-            if (scanner.hasNextInt()) {
-                int option = scanner.nextInt();
-                scanner.nextLine(); // Consume the newline character after reading the integer
-    
-                switch (option) {
-                    case 1:
-                        // TODO: Handle option 1 - Edit Explore playlist
-                        break;
-                    case 2:
-                        findNewMusic();
-                        break;
-                    case 3:
-                        System.out.println("Enter the trackID you want to get features from");
-                        String track = scanner.nextLine();
-                        getAudioFeatures(track);
-                        break;
-                    case 4:
-                        scanner.close(); // Exit the entire program
-                        return;
-                    default:
-                        System.out.println("Invalid input. Please enter a number between 1 and 3.");
-                        break;
-                }
-            } else {
-                scanner.nextLine();
-                System.out.println("Invalid input. Please enter a number between 1 and 4.");
-            }
-        }
-    }
-    
 
     // Use standard output to help user run bash script to retrieve access token
     private void getAccessToken() {
@@ -314,29 +467,6 @@ public class Explore {
         return jsonItems;
     }
     
-    
-
-    private void seeGenreSeeds() {
-        String genreData = get("recommendations/available-genre-seeds");
-        Gson gson = new Gson();
-        JsonObject jsonObject = gson.fromJson(genreData, JsonObject.class);
-        JsonArray itemsArray = jsonObject.getAsJsonArray("genres");
-        for (JsonElement genre : itemsArray) {
-            System.out.println(genre.getAsString());
-        }
-    }
-
-    private void getAudioFeatures(String trackId) {
-        String features = get("audio-features" + "?ids=" + trackId);
-    ArrayList<String> featureList = parseJSON(features, "audio_features");
-    for (String item : featureList) {
-        // Parse the JSON string and pretty-print it
-        JsonParser parser = new JsonParser();
-        JsonElement jsonElement = parser.parse(item);
-        Gson gson = new Gson();
-        String prettyJson = gson.toJson(jsonElement);
-        System.out.println(prettyJson);
-    }
-    }
+    private String 
 }
 
