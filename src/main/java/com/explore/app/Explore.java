@@ -415,7 +415,7 @@ public class Explore {
         JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
 
         System.out.println();
-        for (int i=1;i<=tracksArray.size();i++) {
+        for (int i=0;i<tracksArray.size();i++) {
             JsonObject trackObject = tracksArray.get(i).getAsJsonObject();
             String trackName = trackObject.get("name").getAsString();
             String trackId = trackObject.get("id").getAsString();
@@ -426,7 +426,7 @@ public class Explore {
                 previewUrl = trackObject.get("preview_url").getAsString();
             } 
 
-            System.out.println(i + " " + trackName + " by " + artistName + ".");
+            System.out.println((i+1) + " " + trackName + " by " + artistName + ".");
             System.out.println("Preview: " + previewUrl);
             System.out.println("Track Id: " + trackId +"\n\n");
         }
@@ -436,8 +436,8 @@ public class Explore {
 
     // interface for finding music and getting music info
     private void exploreMusic(){
+        ArrayList<String> currentRecs = new ArrayList<>();
         while (true) {
-            ArrayList<String> currentRecs = new ArrayList<>();
 
             System.out.println("What would you like to do?");
             System.out.println("1: Get recommendations");
@@ -483,12 +483,12 @@ public class Explore {
             con.setRequestProperty("Authorization", "Bearer " + accessToken);
             con.setRequestProperty("Content-Type", "application/json");
 
-            String requestBody = "{\"uris\": \"";
-            for (String uri : trackIdArrayList) {
-                requestBody += "spotify:track:" + uri + ",";
+            String requestBody = "{\"uris\": [";
+            for (String trackIdString : trackIdArrayList) {
+                requestBody += "\"spotify:track:" + trackIdString + "\",";
             }
             requestBody = requestBody.substring(0, requestBody.length() - 1);
-            requestBody += "\"}";
+            requestBody += "]}";
 
             con.setDoOutput(true);
             OutputStream wr = con.getOutputStream();
