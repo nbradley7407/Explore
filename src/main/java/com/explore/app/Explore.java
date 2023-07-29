@@ -18,14 +18,14 @@ import com.google.gson.JsonArray;
 
 /* TODO
  * MAIN GOAL: finish get recommendations
- *     - Need to find good way of building the query off of given inputs
- *          - note: need '&' between params and '%2' between lists items (like artists)
- *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them?
- *     - Maybe use Spotify's /search endpoint?
+ *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them? Maybe use Spotify's /search endpoint?
+ *     - Need to store My Explore playilst id so it can be edited.
  * 
  * CRUD methods for "My Explore" playlist songs
  * figure out how to do Auth without copy/pasting into terminal manually
  * handling of refresh tokens
+ * 
+ * Maybe throw this in a Docker container when it's done
  */
 
 
@@ -38,6 +38,7 @@ public class Explore {
     private String redirectURI;
     private String encoded;
     private String accessToken;
+    private String myExplorePlaylistId;
 
     public Explore() {
         this.scanner     = new Scanner(System.in);
@@ -72,7 +73,7 @@ public class Explore {
                         // TODO: Handle option 1 - Edit Explore playlist
                         break;
                     case 2:
-                        findNewMusic();
+                        exploreMusic();
                         break;
                     case 3:
                         scanner.close(); // Exit the entire program
@@ -90,7 +91,7 @@ public class Explore {
 
     // Checks if "My Explore" exists in your playlists. Creates it if it doesn't
     private void checkPlaylists() {
-        String myPlaylistData = get("me/playlists");
+        String myPlaylistData = getJsonString("me/playlists");
         ArrayList<String> myPlaylists = parseJSON(myPlaylistData, "name");
         for (String item : myPlaylists) {
             System.out.println(item);
@@ -99,6 +100,24 @@ public class Explore {
             System.out.println("Creating \"My Explore\" playlist.");
             createPlaylist();
         } 
+    
+        // get the id
+        try {
+            Gson gson = new Gson();
+            JsonObject jsonPlaylistData = gson.fromJson(myPlaylistData, JsonObject.class);
+            JsonArray jsonPlaylistArray = jsonPlaylistData.getAsJsonArray("items");
+    
+            for (int i = 0; i < jsonPlaylistArray.size(); i++) {
+                JsonObject item = jsonPlaylistArray.get(i).getAsJsonObject();
+                String name = item.get("name").getAsString();
+                if (name.equals("My Explore")) {
+                    myExplorePlaylistId = item.get("id").getAsString();
+                    break;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
     
     // create "My Explore" playlist
@@ -120,11 +139,10 @@ public class Explore {
         }
     }
 
-    //TODO
-    // Should add an exit from anywhere
+    //TODO - hashmap for adding specific OR all recommendations given to My Explore playlist
+    // Should add an exit from anywhere and input validation (double, int, String)
     private ArrayList<String> getRecommendations() {
         ArrayList<String> recs = new ArrayList<>();
-        String market = "US";
         String recQuery = "recommendations?market=US";
 
 
@@ -133,15 +151,17 @@ public class Explore {
         // limit input
         System.out.print("Limit number of recommendations (Enter a number between 1-100): ");
         String limitInput = scanner.nextLine();
-        int limit = -1; // Default value or an invalid value
+        int limit = 10; // Default value
         if (!limitInput.isEmpty()) {
             limit = Integer.parseInt(limitInput);
             if (limit < 1 || limit > 100) {
                 System.out.println("Invalid input for limit. It should be between 1 and 100");
-                limit = -1; // Reset to default value
+                limit = 10; // Reset to default value
             } else {
                 recQuery += "&limit=" + limitInput;
             }
+        } else {
+            recQuery += "&limit=10";
         }
 
         // seed_artists input
@@ -171,7 +191,7 @@ public class Explore {
             recQuery = recQuery.substring(0, (recQuery.length() - 2));
         }
 
-        // seed_genres input
+        // seed_tracks input
         ArrayList<String> trackList = new ArrayList<>();
         while (true) {
             System.out.print("seed_tracks (Enter a track id. To continue, press enter.): ");
@@ -182,7 +202,7 @@ public class Explore {
                 break;
             }
         }
-        // format genre list 
+        // format tracks list 
         if (!trackList.isEmpty()) {
             recQuery += "&seed_genres=";
             for (String track : trackList) {
@@ -194,18 +214,19 @@ public class Explore {
         // target_acousticness input
         System.out.print("target_acousticness (Enter a number between 0.0-1.0): ");
         String acousticnessInput = scanner.nextLine();
-        double targetAcousticness = -1; // Default value or an invalid value
+        double targetAcousticness = -1;
         if (!acousticnessInput.isEmpty()) {
             targetAcousticness = Double.parseDouble(acousticnessInput);
             if (targetAcousticness < 0.0 || targetAcousticness > 1.0) {
                 System.out.println("Invalid input for target_acousticness. It should be between 0.0 and 1.0");
-                targetAcousticness = -1; // Reset to default value
+                targetAcousticness = -1;
             } else {
                 recQuery += "target_acousticness=" + acousticnessInput + "&";
             }
         }
 
         // target_danceability input
+
         System.out.print("target_danceability (Enter a number between 0.0-1.0): ");
         String danceabilityInput = scanner.nextLine();
         double targetDanceability = -1;
@@ -214,6 +235,8 @@ public class Explore {
             if (targetDanceability < 0.0 || targetDanceability > 1.0) {
                 System.out.println("Invalid input for target_danceability. It should be between 0.0 and 1.0");
                 targetDanceability = -1;
+            } else {
+                recQuery += "target_danceability=" + danceabilityInput + "&";
             }
         }
 
@@ -226,6 +249,8 @@ public class Explore {
             if (targetDurationMs <= 0) {
                 System.out.println("Invalid input for target_duration_ms. It should be a positive number");
                 targetDurationMs = -1;
+            } else {
+                recQuery += "target_duration=" + durationInput + "&";
             }
         }
 
@@ -238,6 +263,8 @@ public class Explore {
             if (targetEnergy < 0.0 || targetEnergy > 1.0) {
                 System.out.println("Invalid input for target_energy. It should be between 0.0 and 1.0");
                 targetEnergy = -1;
+            } else {
+                recQuery += "target_energy=" + energyInput + "&";
             }
         }
 
@@ -250,6 +277,8 @@ public class Explore {
             if (targetInstrumentalness < 0.0 || targetInstrumentalness > 1.0) {
                 System.out.println("Invalid input for target_instrumentalness. It should be between 0.0 and 1.0");
                 targetInstrumentalness = -1;
+            } else {
+                recQuery += "target_instrumentalness=" + instrumentalnessInput + "&";
             }
         }
 
@@ -262,6 +291,8 @@ public class Explore {
             if (targetKey < 0 || targetKey > 11) {
                 System.out.println("Invalid input for target_key. It should be between 0 and 11");
                 targetKey = -1;
+            } else {
+                recQuery += "target_key=" + keyInput + "&";
             }
         }
 
@@ -274,6 +305,8 @@ public class Explore {
             if (targetLiveness < 0.0 || targetLiveness > 1.0) {
                 System.out.println("Invalid input for target_liveness. It should be between 0.0 and 1.0");
                 targetLiveness = -1;
+            } else {
+                recQuery += "target_liveness=" + livenessInput + "&";
             }
         }
 
@@ -286,6 +319,8 @@ public class Explore {
             if (targetLoudness < -60 || targetLoudness > 0) {
                 System.out.println("Invalid input for target_loudness. It should be between -60 and 0");
                 targetLoudness = -1;
+            } else {
+                recQuery += "target_loudness=" + loudnessInput + "&";
             }
         }
 
@@ -298,6 +333,8 @@ public class Explore {
             if (targetMode != 0 && targetMode != 1) {
                 System.out.println("Invalid input for target_mode. It should be 0 for minor or 1 for major");
                 targetMode = -1;
+            } else {
+                recQuery += "target_mode=" + modeInput + "&";
             }
         }
 
@@ -310,6 +347,8 @@ public class Explore {
             if (targetPopularity < 0 || targetPopularity > 100) {
                 System.out.println("Invalid input for target_popularity. It should be between 0 and 100");
                 targetPopularity = -1;
+            } else {
+                recQuery += "target_popularity=" + popularityInput + "&";
             }
         }
 
@@ -322,6 +361,8 @@ public class Explore {
             if (targetSpeechiness < 0.0 || targetSpeechiness > 1.0) {
                 System.out.println("Invalid input for target_speechiness. It should be between 0.0 and 1.0");
                 targetSpeechiness = -1; 
+            } else {
+                recQuery += "target_speechiness=" + speechinessInput + "&";
             }
         }
 
@@ -334,6 +375,8 @@ public class Explore {
             if (targetTempo <= 0) {
                 System.out.println("Invalid input for target_tempo. It should be a positive number");
                 targetTempo = -1; 
+            } else {
+                recQuery += "target_tempo=" + tempoInput + "&";
             }
         }
 
@@ -346,6 +389,8 @@ public class Explore {
             if (targetTimeSignature <= 0) {
                 System.out.println("Invalid input for target_time_signature. It should be a positive integer");
                 targetTimeSignature = -1;
+            } else {
+                recQuery += "target_time_signature=" + timeSignatureInput + "&";
             }
         }
 
@@ -358,39 +403,62 @@ public class Explore {
             if (targetValence < 0.0 || targetValence > 1.0) {
                 System.out.println("Invalid input for target_valence. It should be between 0.0 and 1.0");
                 targetValence = -1; 
+            } else {
+                recQuery += "target_valence=" + valenceInput + "&";
             }
         }
 
-        String recsJson = get(recQuery);
+        // make the recommendations query and then store in a Json array
+        String recsDataString = getJsonString(recQuery);
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(recsDataString, JsonObject.class);
+        JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
 
+        for (int i=0;i<limit;i++) {
+            JsonObject trackObject = tracksArray.get(i).getAsJsonObject();
+            String trackName = trackObject.get("name").getAsString();
+            String trackId = trackObject.get("id").getAsString();
+            recs.add(trackId);
+            String artistName = trackObject.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
+            String previewUrl = trackObject.get("preview_url").getAsString();
 
+            System.out.println(i + " " + trackName + " by " + artistName + ".");
+            System.out.println("Preview: " + previewUrl);
+            System.out.println("Track Id: " + trackId +"\n\n");
+        }
         return recs;
     }
 
     // interface for finding music and getting music info
-    private void findNewMusic(){
+    private void exploreMusic(){
         while (true) {
+            ArrayList<String> currentRecs = new ArrayList<>();
+
             System.out.println("What would you like to do?");
             System.out.println("1: Get recommendations");
-            System.out.println("2: See Genre Seeds");
-            System.out.println("3: Get audio features of a trackID");
-            System.out.println("4: Exit");
+            System.out.println("2: Add recommendations");
+            System.out.println("3: See Genre Seeds");
+            System.out.println("4: Get audio features of a trackID");
+            System.out.println("5: Exit");
             int option = scanner.nextInt();
             scanner.nextLine();
-    
+            
             switch (option) {
                 case 1:
-                    getRecommendations();
+                    currentRecs = getRecommendations();
                     break;
                 case 2:
-                    seeGenreSeeds();
+                    addRecommendations(currentRecs);
                     break;
                 case 3:
+                    seeGenreSeeds();
+                    break;
+                case 4:
                     System.out.println("Enter the trackID you want to get features from");
                     String track = scanner.nextLine();
                     getAudioFeatures(track);
                     break;
-                case 4:
+                case 5:
                     return;
                 default:
                     System.out.println("Invalid input. Please enter a number between x and y.");
@@ -399,9 +467,16 @@ public class Explore {
         }
     }
 
+    //TODO 
+    private void addRecommendations(ArrayList<String> trackIdArrayList) {
+        for (String id : trackIdArrayList) {
+            // put songs into My Explore
+        }
+    }
+
     // list options of genre seeds to use in recommendations
     private void seeGenreSeeds() {
-        String genreData = get("recommendations/available-genre-seeds");
+        String genreData = getJsonString("recommendations/available-genre-seeds");
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(genreData, JsonObject.class);
         JsonArray itemsArray = jsonObject.getAsJsonArray("genres");
@@ -412,7 +487,7 @@ public class Explore {
 
     // see audio features of a given track id
     private void getAudioFeatures(String trackId) {
-        String features = get("audio-features" + "?ids=" + trackId);
+        String features = getJsonString("audio-features" + "?ids=" + trackId);
         ArrayList<String> featureList = parseJSON(features, "audio_features");
         for (String item : featureList) {
             System.out.println(item);
@@ -420,7 +495,7 @@ public class Explore {
     }
 
     // getter for basic JSON response
-    private String get(String endpoint) {
+    private String getJsonString(String endpoint) {
         try {
             String apiUrl = "https://api.spotify.com/v1/" + endpoint;
             URL url = new URL(apiUrl);
