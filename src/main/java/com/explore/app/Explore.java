@@ -174,7 +174,7 @@ public class Explore {
         // seed_genres input
         ArrayList<String> genreList = new ArrayList<>();
         while (true) {
-            System.out.print("seed_genres (Enter a genre. To continue, press enter.): ");
+            System.out.print("seed_genres (Enter one at a time, up to 5. To continue, press enter.): ");
             String seedGenresInput = scanner.nextLine();
             if (!seedGenresInput.isEmpty()) {
                     genreList.add(seedGenresInput);
@@ -186,15 +186,15 @@ public class Explore {
         if (!genreList.isEmpty()) {
             recQuery += "&seed_genres=";
             for (String genre : genreList) {
-                recQuery += genre + "%2";
+                recQuery += genre + "%2C";
             }
-            recQuery = recQuery.substring(0, (recQuery.length() - 2));
+            recQuery = recQuery.substring(0, (recQuery.length() - 3));
         }
 
         // seed_tracks input
         ArrayList<String> trackList = new ArrayList<>();
         while (true) {
-            System.out.print("seed_tracks (Enter a track id. To continue, press enter.): ");
+            System.out.print("seed_tracks (Enter one at a time, up to 5. To continue, press enter.): ");
             String seedTracksInput = scanner.nextLine();
             if (!seedTracksInput.isEmpty()) {
                     trackList.add(seedTracksInput);
@@ -204,11 +204,11 @@ public class Explore {
         }
         // format tracks list 
         if (!trackList.isEmpty()) {
-            recQuery += "&seed_genres=";
+            recQuery += "&seed_tracks=";
             for (String track : trackList) {
-                recQuery += track + "%2";
+                recQuery += track + "%2C";
             }
-            recQuery = recQuery.substring(0, (recQuery.length() - 2));
+            recQuery = recQuery.substring(0, (recQuery.length() - 3));
         }
 
         // target_acousticness input
@@ -221,7 +221,7 @@ public class Explore {
                 System.out.println("Invalid input for target_acousticness. It should be between 0.0 and 1.0");
                 targetAcousticness = -1;
             } else {
-                recQuery += "target_acousticness=" + acousticnessInput + "&";
+                recQuery += "&target_acousticness=" + acousticnessInput;
             }
         }
 
@@ -236,7 +236,7 @@ public class Explore {
                 System.out.println("Invalid input for target_danceability. It should be between 0.0 and 1.0");
                 targetDanceability = -1;
             } else {
-                recQuery += "target_danceability=" + danceabilityInput + "&";
+                recQuery += "&target_danceability=" + danceabilityInput;
             }
         }
 
@@ -250,7 +250,7 @@ public class Explore {
                 System.out.println("Invalid input for target_duration_ms. It should be a positive number");
                 targetDurationMs = -1;
             } else {
-                recQuery += "target_duration=" + durationInput + "&";
+                recQuery += "&target_duration=" + durationInput;
             }
         }
 
@@ -264,7 +264,7 @@ public class Explore {
                 System.out.println("Invalid input for target_energy. It should be between 0.0 and 1.0");
                 targetEnergy = -1;
             } else {
-                recQuery += "target_energy=" + energyInput + "&";
+                recQuery += "&target_energy=" + energyInput;
             }
         }
 
@@ -278,7 +278,7 @@ public class Explore {
                 System.out.println("Invalid input for target_instrumentalness. It should be between 0.0 and 1.0");
                 targetInstrumentalness = -1;
             } else {
-                recQuery += "target_instrumentalness=" + instrumentalnessInput + "&";
+                recQuery += "&target_instrumentalness=" + instrumentalnessInput;
             }
         }
 
@@ -292,7 +292,7 @@ public class Explore {
                 System.out.println("Invalid input for target_key. It should be between 0 and 11");
                 targetKey = -1;
             } else {
-                recQuery += "target_key=" + keyInput + "&";
+                recQuery += "&target_key=" + keyInput;
             }
         }
 
@@ -306,21 +306,21 @@ public class Explore {
                 System.out.println("Invalid input for target_liveness. It should be between 0.0 and 1.0");
                 targetLiveness = -1;
             } else {
-                recQuery += "target_liveness=" + livenessInput + "&";
+                recQuery += "&target_liveness=" + livenessInput;
             }
         }
 
         // target_loudness input
         System.out.print("target_loudness (Enter a number between -60 to 0): ");
         String loudnessInput = scanner.nextLine();
-        double targetLoudness = -1;
+        int targetLoudness = -1;
         if (!loudnessInput.isEmpty()) {
-            targetLoudness = Double.parseDouble(loudnessInput);
+            targetLoudness = Integer.parseInt(loudnessInput);
             if (targetLoudness < -60 || targetLoudness > 0) {
                 System.out.println("Invalid input for target_loudness. It should be between -60 and 0");
                 targetLoudness = -1;
             } else {
-                recQuery += "target_loudness=" + loudnessInput + "&";
+                recQuery += "&target_loudness=" + loudnessInput;
             }
         }
 
@@ -334,7 +334,7 @@ public class Explore {
                 System.out.println("Invalid input for target_mode. It should be 0 for minor or 1 for major");
                 targetMode = -1;
             } else {
-                recQuery += "target_mode=" + modeInput + "&";
+                recQuery += "&target_mode=" + modeInput;
             }
         }
 
@@ -348,7 +348,7 @@ public class Explore {
                 System.out.println("Invalid input for target_popularity. It should be between 0 and 100");
                 targetPopularity = -1;
             } else {
-                recQuery += "target_popularity=" + popularityInput + "&";
+                recQuery += "&target_popularity=" + popularityInput;
             }
         }
 
@@ -362,21 +362,21 @@ public class Explore {
                 System.out.println("Invalid input for target_speechiness. It should be between 0.0 and 1.0");
                 targetSpeechiness = -1; 
             } else {
-                recQuery += "target_speechiness=" + speechinessInput + "&";
+                recQuery += "&target_speechiness=" + speechinessInput;
             }
         }
 
         // target_tempo input
         System.out.print("target_tempo (Enter a positive number): ");
         String tempoInput = scanner.nextLine();
-        double targetTempo = -1; 
+        int targetTempo = -1; 
         if (!tempoInput.isEmpty()) {
-            targetTempo = Double.parseDouble(tempoInput);
+            targetTempo = Integer.parseInt(tempoInput);
             if (targetTempo <= 0) {
                 System.out.println("Invalid input for target_tempo. It should be a positive number");
                 targetTempo = -1; 
             } else {
-                recQuery += "target_tempo=" + tempoInput + "&";
+                recQuery += "&target_tempo=" + tempoInput;
             }
         }
 
@@ -390,7 +390,7 @@ public class Explore {
                 System.out.println("Invalid input for target_time_signature. It should be a positive integer");
                 targetTimeSignature = -1;
             } else {
-                recQuery += "target_time_signature=" + timeSignatureInput + "&";
+                recQuery += "&target_time_signature=" + timeSignatureInput;
             }
         }
 
@@ -404,7 +404,7 @@ public class Explore {
                 System.out.println("Invalid input for target_valence. It should be between 0.0 and 1.0");
                 targetValence = -1; 
             } else {
-                recQuery += "target_valence=" + valenceInput + "&";
+                recQuery += "&target_valence=" + valenceInput;
             }
         }
 
@@ -414,18 +414,23 @@ public class Explore {
         JsonObject jsonObject = gson.fromJson(recsDataString, JsonObject.class);
         JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
 
-        for (int i=0;i<limit;i++) {
+        System.out.println();
+        for (int i=1;i<=tracksArray.size();i++) {
             JsonObject trackObject = tracksArray.get(i).getAsJsonObject();
             String trackName = trackObject.get("name").getAsString();
             String trackId = trackObject.get("id").getAsString();
             recs.add(trackId);
             String artistName = trackObject.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
-            String previewUrl = trackObject.get("preview_url").getAsString();
+            String previewUrl = "Preview not available.";
+            if (!trackObject.get("preview_url").isJsonNull()) {
+                previewUrl = trackObject.get("preview_url").getAsString();
+            } 
 
             System.out.println(i + " " + trackName + " by " + artistName + ".");
             System.out.println("Preview: " + previewUrl);
             System.out.println("Track Id: " + trackId +"\n\n");
         }
+
         return recs;
     }
 
@@ -468,9 +473,46 @@ public class Explore {
     }
 
     //TODO 
+    // addss trackIdArrayList items to My Explore playlist
     private void addRecommendations(ArrayList<String> trackIdArrayList) {
-        for (String id : trackIdArrayList) {
-            // put songs into My Explore
+        try {
+            String url = "https://api.spotify.com/v1/playlists/" + myExplorePlaylistId + "/tracks";
+            URL obj = new URL(url);
+            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+            con.setRequestMethod("PUT");
+            con.setRequestProperty("Authorization", "Bearer " + accessToken);
+            con.setRequestProperty("Content-Type", "application/json");
+
+            String requestBody = "{\"uris\": \"";
+            for (String uri : trackIdArrayList) {
+                requestBody += "spotify:track:" + uri + ",";
+            }
+            requestBody = requestBody.substring(0, requestBody.length() - 1);
+            requestBody += "\"}";
+
+            con.setDoOutput(true);
+            OutputStream wr = con.getOutputStream();
+            byte [] bodyBytes = requestBody.getBytes();
+            wr.write(bodyBytes);
+            wr.flush();
+            wr.close();
+
+            if (con.getResponseCode() == 200) {
+                System.out.println("Added all tracks to My Explore");
+            }
+            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            System.out.println("Response Body: " + response.toString());
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
