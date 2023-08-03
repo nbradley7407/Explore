@@ -143,11 +143,7 @@ public class Explore {
     // Should add an exit from anywhere and input validation (double, int, String)
     
     private void getRecommendations() {
-        HashMap<Integer,String> recsMap = new HashMap<>();
-        ArrayList<String> recsList = new ArrayList<>();
         String recQuery = "recommendations?market=US";
-
-
         System.out.println("Enter values for each of the following, or press Enter to skip:");
 
         // limit input
@@ -417,12 +413,14 @@ public class Explore {
         JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
         int n = tracksArray.size();
 
+        // map numbers to the track ids and print out track info
         System.out.println();
+        HashMap<String,String> recsMap = new HashMap<>();
         for (int i=0;i<n;i++) {
             JsonObject trackObject = tracksArray.get(i).getAsJsonObject();
             String trackName = trackObject.get("name").getAsString();
             String trackId = trackObject.get("id").getAsString();
-            recsMap.put(i+1, trackId);
+            recsMap.put(Integer.toString(i+1), trackId);
             String artistName = trackObject.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
             String previewUrl = "Preview not available.";
             if (!trackObject.get("preview_url").isJsonNull()) {
@@ -434,31 +432,42 @@ public class Explore {
             System.out.println("Track Id: " + trackId +"\n\n");
         }
 
-        System.out.println("Which track would you like to add? (0 for all)");
+        // interface for adding tracks
+        Set<String> recsSet = new HashSet<>();
+        System.out.println("Which track would you like to add? (Enter a number between 1 and " + limit + ", 0 to add all,");
+        System.out.println("or press Enter to continue.");
         while (true) {
             String option = scanner.nextLine();
-            if (option == "0") {
-                for (String id : recsMap.values()) {
-                    recsList.add(id);
+            if (!option.isEmpty()) {
+                if (option.equals("0")) {
+                    for (String id : recsMap.values()) {
+                        recsSet.add(id);
+                    }
+                    System.out.println("Added all tracks");
+                    break;
+                } else if (recsMap.keySet().contains(option)) {
+                    recsSet.add(recsMap.get(option));
+                    System.out.println("Added track " + option);
+                } else {
+                    System.out.println("Invalid input. Please enter a number between 0 and " + n);
                 }
-                break;
-            } else if (recsMap.keySet().contains(option)) {
-                recsList.add(recsMap.get(option));
             } else {
-                System.out.println("Invalid input. Please enter a number between 0 and " + n);
+                break;
             }
         }
 
-        addRecommendations(recsList);
+        if (!recsSet.isEmpty()) {
+            addRecommendations(recsSet);
+        }
     }
 
     //TODO
-    private void setIntParameter(int minParam, int maxParam, String message, String parameter){
+    private void setIntParameter(String parameter, int minParam, int maxParam, String message){
 
     }
 
         //TODO
-    private void setdoubleParameter(double minParam, double maxParam, String message, String parameter){
+    private void setdoubleParameter(String parameter, double minParam, double maxParam, String message){
 
     }
 
@@ -497,8 +506,8 @@ public class Explore {
     }
 
     //TODO 
-    // addss trackIdArrayList items to My Explore playlist
-    private void addRecommendations(ArrayList<String> trackIdArrayList) {
+    // addss trackIdSet items to My Explore playlist
+    private void addRecommendations(Set<String> trackIdSet) {
         try {
             String url = "https://api.spotify.com/v1/playlists/" + myExplorePlaylistId + "/tracks";
             URL obj = new URL(url);
@@ -508,7 +517,7 @@ public class Explore {
             con.setRequestProperty("Content-Type", "application/json");
 
             String requestBody = "{\"uris\": [";
-            for (String trackIdString : trackIdArrayList) {
+            for (String trackIdString : trackIdSet) {
                 requestBody += "\"spotify:track:" + trackIdString + "\",";
             }
             requestBody = requestBody.substring(0, requestBody.length() - 1);
@@ -532,12 +541,10 @@ public class Explore {
                 response.append(inputLine);
             }
             in.close();
-
-            System.out.println("Response Body: " + response.toString());
-
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("Your recommendations have been added to My Explore.");
     }
 
     // list options of genre seeds to use in recommendations
