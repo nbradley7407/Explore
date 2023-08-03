@@ -1,5 +1,6 @@
 package com.explore.app;
 
+import java.util.*;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -119,7 +120,6 @@ public class Explore {
             e.printStackTrace();
         }
     }
-    
     // create "My Explore" playlist
     private void createPlaylist() {
         try {
@@ -141,8 +141,10 @@ public class Explore {
 
     //TODO - hashmap for adding specific OR all recommendations given to My Explore playlist
     // Should add an exit from anywhere and input validation (double, int, String)
-    private ArrayList<String> getRecommendations() {
-        ArrayList<String> recs = new ArrayList<>();
+    
+    private void getRecommendations() {
+        HashMap<Integer,String> recsMap = new HashMap<>();
+        ArrayList<String> recsList = new ArrayList<>();
         String recQuery = "recommendations?market=US";
 
 
@@ -413,13 +415,14 @@ public class Explore {
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(recsDataString, JsonObject.class);
         JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
+        int n = tracksArray.size();
 
         System.out.println();
-        for (int i=0;i<tracksArray.size();i++) {
+        for (int i=0;i<n;i++) {
             JsonObject trackObject = tracksArray.get(i).getAsJsonObject();
             String trackName = trackObject.get("name").getAsString();
             String trackId = trackObject.get("id").getAsString();
-            recs.add(trackId);
+            recsMap.put(i+1, trackId);
             String artistName = trackObject.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
             String previewUrl = "Preview not available.";
             if (!trackObject.get("preview_url").isJsonNull()) {
@@ -431,39 +434,60 @@ public class Explore {
             System.out.println("Track Id: " + trackId +"\n\n");
         }
 
-        return recs;
+        System.out.println("Which track would you like to add? (0 for all)");
+        while (true) {
+            String option = scanner.nextLine();
+            if (option == "0") {
+                for (String id : recsMap.values()) {
+                    recsList.add(id);
+                }
+                break;
+            } else if (recsMap.keySet().contains(option)) {
+                recsList.add(recsMap.get(option));
+            } else {
+                System.out.println("Invalid input. Please enter a number between 0 and " + n);
+            }
+        }
+
+        addRecommendations(recsList);
+    }
+
+    //TODO
+    private void setIntParameter(int minParam, int maxParam, String message, String parameter){
+
+    }
+
+        //TODO
+    private void setdoubleParameter(double minParam, double maxParam, String message, String parameter){
+
     }
 
     // interface for finding music and getting music info
-    private void exploreMusic(){
-        ArrayList<String> currentRecs = new ArrayList<>();
+    private void exploreMusic() {
+        ArrayList<String> currentRecs = new ArrayList<>(); 
         while (true) {
 
             System.out.println("What would you like to do?");
             System.out.println("1: Get recommendations");
-            System.out.println("2: Add recommendations");
-            System.out.println("3: See Genre Seeds");
-            System.out.println("4: Get audio features of a trackID");
-            System.out.println("5: Exit");
+            System.out.println("2: See Genre Seeds");
+            System.out.println("3: Get audio features of a trackID");
+            System.out.println("4: Exit");
             int option = scanner.nextInt();
             scanner.nextLine();
             
             switch (option) {
                 case 1:
-                    currentRecs = getRecommendations();
+                    getRecommendations();
                     break;
                 case 2:
-                    addRecommendations(currentRecs);
-                    break;
-                case 3:
                     seeGenreSeeds();
                     break;
-                case 4:
+                case 3:
                     System.out.println("Enter the trackID you want to get features from");
                     String track = scanner.nextLine();
                     getAudioFeatures(track);
                     break;
-                case 5:
+                case 4:
                     return;
                 default:
                     System.out.println("Invalid input. Please enter a number between x and y.");
