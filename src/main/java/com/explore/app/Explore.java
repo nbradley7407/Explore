@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.lang.StringBuilder;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedReader;
@@ -20,7 +21,7 @@ import com.google.gson.JsonArray;
 /* TODO
  * MAIN GOAL: finish get recommendations
  *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them? Maybe use Spotify's /search endpoint?
- *     - Need to store My Explore playilst id so it can be edited.
+ *     - Need to refactor getRecommendations so it isn't so long and repetitive
  * 
  * CRUD methods for "My Explore" playlist songs
  * figure out how to do Auth without copy/pasting into terminal manually
@@ -143,271 +144,91 @@ public class Explore {
     // Should add an exit from anywhere and input validation (double, int, String)
     
     private void getRecommendations() {
-        String recQuery = "recommendations?market=US";
+        // initialize reccomendations query with the market Id
+        StringBuilder recQuery = new StringBuilder();
+        recQuery.append("recommendations?market=US");
+
         System.out.println("Enter values for each of the following, or press Enter to skip:");
 
-        // limit input
-        System.out.print("Limit number of recommendations (Enter a number between 1-100): ");
-        String limitInput = scanner.nextLine();
-        int limit = 10; // Default value
-        if (!limitInput.isEmpty()) {
-            limit = Integer.parseInt(limitInput);
-            if (limit < 1 || limit > 100) {
-                System.out.println("Invalid input for limit. It should be between 1 and 100");
-                limit = 10; // Reset to default value
+        // limit input (required, default is 10)
+        int limit = 10;
+        while (true) {
+            System.out.print("Limit number of recommendations (Enter a number between 1-100): ");
+            String limitInput = scanner.nextLine();
+            if (!limitInput.isEmpty()) {
+                try {
+                    limit = Integer.parseInt(limitInput);
+                    if (limit < 1 || limit > 100) {
+                        System.out.println("Invalid input for limit. It should be between 1 and 100");
+                        limit = 10;
+                    } else {
+                        recQuery.append("&limit=").append(limitInput);
+                        break;
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input for limit. Please enter a valid integer.");
+                }
+
             } else {
-                recQuery += "&limit=" + limitInput;
+                recQuery.append("&limit=10");
+                break;
             }
-        } else {
-            recQuery += "&limit=10";
         }
 
         // seed_artists input
-        System.out.print("seed_artists (Enter an artist id): ");
-        String seedArtistInput = scanner.nextLine();
-        if (!seedArtistInput.isEmpty()) {
-            recQuery += "&seed_artists=" + seedArtistInput;
-        }
+        handleMultiParameter("seed_artists", "seed_artists (Enter one at a time, up to 5. To continue, press enter.): ", recQuery);
 
         // seed_genres input
-        ArrayList<String> genreList = new ArrayList<>();
-        while (true) {
-            System.out.print("seed_genres (Enter one at a time, up to 5. To continue, press enter.): ");
-            String seedGenresInput = scanner.nextLine();
-            if (!seedGenresInput.isEmpty()) {
-                    genreList.add(seedGenresInput);
-            } else {
-                break;
-            }
-        }
-        // format genre list 
-        if (!genreList.isEmpty()) {
-            recQuery += "&seed_genres=";
-            for (String genre : genreList) {
-                recQuery += genre + "%2C";
-            }
-            recQuery = recQuery.substring(0, (recQuery.length() - 3));
-        }
+        handleMultiParameter("seed_genres", "seed_genres (Enter one at a time, up to 5. To continue, press enter.): ", recQuery);
 
         // seed_tracks input
-        ArrayList<String> trackList = new ArrayList<>();
-        while (true) {
-            System.out.print("seed_tracks (Enter one at a time, up to 5. To continue, press enter.): ");
-            String seedTracksInput = scanner.nextLine();
-            if (!seedTracksInput.isEmpty()) {
-                    trackList.add(seedTracksInput);
-            } else {
-                break;
-            }
-        }
-        // format tracks list 
-        if (!trackList.isEmpty()) {
-            recQuery += "&seed_tracks=";
-            for (String track : trackList) {
-                recQuery += track + "%2C";
-            }
-            recQuery = recQuery.substring(0, (recQuery.length() - 3));
-        }
+        handleMultiParameter("seed_tracks", "seed_tracks (Enter one at a time, up to 5. To continue, press enter.): ", recQuery);
 
         // target_acousticness input
-        System.out.print("target_acousticness (Enter a number between 0.0-1.0): ");
-        String acousticnessInput = scanner.nextLine();
-        double targetAcousticness = -1;
-        if (!acousticnessInput.isEmpty()) {
-            targetAcousticness = Double.parseDouble(acousticnessInput);
-            if (targetAcousticness < 0.0 || targetAcousticness > 1.0) {
-                System.out.println("Invalid input for target_acousticness. It should be between 0.0 and 1.0");
-                targetAcousticness = -1;
-            } else {
-                recQuery += "&target_acousticness=" + acousticnessInput;
-            }
-        }
+        handleDoubleParameter("target_acousticness", 0.0, 1.0, "target_acousticness (Enter a number between 0.0-1.0): ", recQuery);
 
         // target_danceability input
-
-        System.out.print("target_danceability (Enter a number between 0.0-1.0): ");
-        String danceabilityInput = scanner.nextLine();
-        double targetDanceability = -1;
-        if (!danceabilityInput.isEmpty()) {
-            targetDanceability = Double.parseDouble(danceabilityInput);
-            if (targetDanceability < 0.0 || targetDanceability > 1.0) {
-                System.out.println("Invalid input for target_danceability. It should be between 0.0 and 1.0");
-                targetDanceability = -1;
-            } else {
-                recQuery += "&target_danceability=" + danceabilityInput;
-            }
-        }
+        handleDoubleParameter("target_danceability", 0.0, 1.0, "target_danceability (Enter a number between 0.0-1.0): ", recQuery);
 
         // target_duration_ms input
-        System.out.print("target_duration_ms (Enter a positive number): ");
-        String durationInput = scanner.nextLine();
-        long targetDurationMs = -1;
-        if (!durationInput.isEmpty()) {
-            targetDurationMs = Long.parseLong(durationInput);
-            if (targetDurationMs <= 0) {
-                System.out.println("Invalid input for target_duration_ms. It should be a positive number");
-                targetDurationMs = -1;
-            } else {
-                recQuery += "&target_duration=" + durationInput;
-            }
-        }
+        handleIntParameter("target_duration_ms", 1, 1200000, "target_duration_ms (Enter a positive number): ", recQuery);
 
         // target_energy input
-        System.out.print("target_energy (Enter a number between 0.0-1.0): ");
-        String energyInput = scanner.nextLine();
-        double targetEnergy = -1;
-        if (!energyInput.isEmpty()) {
-            targetEnergy = Double.parseDouble(energyInput);
-            if (targetEnergy < 0.0 || targetEnergy > 1.0) {
-                System.out.println("Invalid input for target_energy. It should be between 0.0 and 1.0");
-                targetEnergy = -1;
-            } else {
-                recQuery += "&target_energy=" + energyInput;
-            }
-        }
+        handleDoubleParameter("target_energy", 0.0, 1.0, "target_energy (Enter a number between 0.0-1.0): ", recQuery);
 
         // target_instrumentalness input
-        System.out.print("target_instrumentalness (Enter a number between 0.0-1.0): ");
-        String instrumentalnessInput = scanner.nextLine();
-        double targetInstrumentalness = -1;
-        if (!instrumentalnessInput.isEmpty()) {
-            targetInstrumentalness = Double.parseDouble(instrumentalnessInput);
-            if (targetInstrumentalness < 0.0 || targetInstrumentalness > 1.0) {
-                System.out.println("Invalid input for target_instrumentalness. It should be between 0.0 and 1.0");
-                targetInstrumentalness = -1;
-            } else {
-                recQuery += "&target_instrumentalness=" + instrumentalnessInput;
-            }
-        }
+        handleDoubleParameter("target_instrumentalness", 0.0, 1.0, "target_instrumentalness (Enter a number between 0.0-1.0): ", recQuery);
 
         // target_key input
-        System.out.print("target_key (Enter an integer between 0-11): ");
-        String keyInput = scanner.nextLine();
-        int targetKey = -1;
-        if (!keyInput.isEmpty()) {
-            targetKey = Integer.parseInt(keyInput);
-            if (targetKey < 0 || targetKey > 11) {
-                System.out.println("Invalid input for target_key. It should be between 0 and 11");
-                targetKey = -1;
-            } else {
-                recQuery += "&target_key=" + keyInput;
-            }
-        }
+        handleIntParameter("target_key", 0, 11, "target_key (Enter a number between 0-11): ", recQuery);
 
         // target_liveness input
-        System.out.print("target_liveness (Enter a number between 0.0-1.0): ");
-        String livenessInput = scanner.nextLine();
-        double targetLiveness = -1;
-        if (!livenessInput.isEmpty()) {
-            targetLiveness = Double.parseDouble(livenessInput);
-            if (targetLiveness < 0.0 || targetLiveness > 1.0) {
-                System.out.println("Invalid input for target_liveness. It should be between 0.0 and 1.0");
-                targetLiveness = -1;
-            } else {
-                recQuery += "&target_liveness=" + livenessInput;
-            }
-        }
+        handleDoubleParameter("target_liveness", 0.0, 1.0, "target_liveness (Enter a number between 0.0-1.0): ", recQuery);
 
         // target_loudness input
-        System.out.print("target_loudness (Enter a number between -60 to 0): ");
-        String loudnessInput = scanner.nextLine();
-        int targetLoudness = -1;
-        if (!loudnessInput.isEmpty()) {
-            targetLoudness = Integer.parseInt(loudnessInput);
-            if (targetLoudness < -60 || targetLoudness > 0) {
-                System.out.println("Invalid input for target_loudness. It should be between -60 and 0");
-                targetLoudness = -1;
-            } else {
-                recQuery += "&target_loudness=" + loudnessInput;
-            }
-        }
+        handleIntParameter("target_loudness", -60, 0, "target_loudness (Enter a number between -60-0): ", recQuery);
 
         // target_mode input
-        System.out.print("target_mode (Enter 0 for minor, 1 for major): ");
-        String modeInput = scanner.nextLine();
-        int targetMode = -1;
-        if (!modeInput.isEmpty()) {
-            targetMode = Integer.parseInt(modeInput);
-            if (targetMode != 0 && targetMode != 1) {
-                System.out.println("Invalid input for target_mode. It should be 0 for minor or 1 for major");
-                targetMode = -1;
-            } else {
-                recQuery += "&target_mode=" + modeInput;
-            }
-        }
+        handleIntParameter("target_mode", 0, 1, "target_mode (Enter 0 for minor, 1 for major): ", recQuery);
 
         // target_popularity input
-        System.out.print("target_popularity (Enter a number between 0-100): ");
-        String popularityInput = scanner.nextLine();
-        int targetPopularity = -1;
-        if (!popularityInput.isEmpty()) {
-            targetPopularity = Integer.parseInt(popularityInput);
-            if (targetPopularity < 0 || targetPopularity > 100) {
-                System.out.println("Invalid input for target_popularity. It should be between 0 and 100");
-                targetPopularity = -1;
-            } else {
-                recQuery += "&target_popularity=" + popularityInput;
-            }
-        }
+        handleIntParameter("target_popularity", 0, 100, "target_popularity (Enter a number between 0-100): ", recQuery);
 
         // target_speechiness input
-        System.out.print("target_speechiness (Enter a number between 0.0-1.0): ");
-        String speechinessInput = scanner.nextLine();
-        double targetSpeechiness = -1; 
-        if (!speechinessInput.isEmpty()) {
-            targetSpeechiness = Double.parseDouble(speechinessInput);
-            if (targetSpeechiness < 0.0 || targetSpeechiness > 1.0) {
-                System.out.println("Invalid input for target_speechiness. It should be between 0.0 and 1.0");
-                targetSpeechiness = -1; 
-            } else {
-                recQuery += "&target_speechiness=" + speechinessInput;
-            }
-        }
+        handleDoubleParameter("target_speechiness", 0.0, 1.0, "target_speechiness (Enter a number between 0.0-1.0): ", recQuery);
 
         // target_tempo input
-        System.out.print("target_tempo (Enter a positive number): ");
-        String tempoInput = scanner.nextLine();
-        int targetTempo = -1; 
-        if (!tempoInput.isEmpty()) {
-            targetTempo = Integer.parseInt(tempoInput);
-            if (targetTempo <= 0) {
-                System.out.println("Invalid input for target_tempo. It should be a positive number");
-                targetTempo = -1; 
-            } else {
-                recQuery += "&target_tempo=" + tempoInput;
-            }
-        }
+        handleIntParameter("target_tempo", 0, 1000, "target_tempo (Enter a positive integer): ", recQuery);
 
         // target_time_signature input
-        System.out.print("target_time_signature (Enter a positive integer): ");
-        String timeSignatureInput = scanner.nextLine();
-        int targetTimeSignature = -1;
-        if (!timeSignatureInput.isEmpty()) {
-            targetTimeSignature = Integer.parseInt(timeSignatureInput);
-            if (targetTimeSignature <= 0) {
-                System.out.println("Invalid input for target_time_signature. It should be a positive integer");
-                targetTimeSignature = -1;
-            } else {
-                recQuery += "&target_time_signature=" + timeSignatureInput;
-            }
-        }
+        handleIntParameter("target_time_signature", 0, 10000, "target_time_signature (Enter a positive integer): ", recQuery);
 
         // target_valence input
-        System.out.print("target_valence (Enter a number between 0.0-1.0): ");
-        String valenceInput = scanner.nextLine();
-        double targetValence = -1;
-        if (!valenceInput.isEmpty()) {
-            targetValence = Double.parseDouble(valenceInput);
-            if (targetValence < 0.0 || targetValence > 1.0) {
-                System.out.println("Invalid input for target_valence. It should be between 0.0 and 1.0");
-                targetValence = -1; 
-            } else {
-                recQuery += "&target_valence=" + valenceInput;
-            }
-        }
+        handleDoubleParameter("target_valence", 0.0, 1.0, "target_valence (Enter a number between 0.0-1.0): ", recQuery);
+
 
         // make the recommendations query and then store in a Json array
-        String recsDataString = getJsonString(recQuery);
+        String recsDataString = getJsonString(recQuery.toString());
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(recsDataString, JsonObject.class);
         JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
@@ -432,7 +253,7 @@ public class Explore {
             System.out.println("Track Id: " + trackId +"\n\n");
         }
 
-        // interface for adding tracks
+        // interface for deciding which tracks to add to My Explore
         Set<String> recsSet = new HashSet<>();
         System.out.println("Which track would you like to add? (Enter a number between 1 and " + limit + ", 0 to add all,");
         System.out.println("or press Enter to continue.");
@@ -456,31 +277,91 @@ public class Explore {
             }
         }
 
+        // add tracks to My Explore playlist
         if (!recsSet.isEmpty()) {
             addRecommendations(recsSet);
         }
     }
 
-    //TODO
-    private void setIntParameter(String parameter, int minParam, int maxParam, String message){
+    //TODO : validate inputs
+    private void handleMultiParameter(String parameter, String message, StringBuilder result){
+        ArrayList<String> paramList = new ArrayList<>();
+        while (true) {
+            System.out.print(message);
+            String paramInput = scanner.nextLine();
+            if (!paramInput.isEmpty()) {
+                paramList.add(paramInput);
+                if (paramList.size() == 5) {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
 
+        // format paramList 
+        if (!paramList.isEmpty()) {
+            result.append("&").append(parameter).append("=");
+            for (int i = 0; i < paramList.size() - 1; i++) {
+                result.append(paramList.get(i)).append("%2C");
+            }
+            result.append(paramList.get(paramList.size() - 1)); // Append the last element without the separator
+        }
     }
 
-        //TODO
-    private void setdoubleParameter(String parameter, double minParam, double maxParam, String message){
+    private void handleIntParameter(String parameter, int minParam, int maxParam, String message, StringBuilder result) {
+        System.out.print(message);
+        while (true) {
+            String paramInput = scanner.nextLine();
+            if (!paramInput.isEmpty()) {
+                try {
+                    int param = Integer.parseInt(paramInput);
+                    if (param < minParam || param > maxParam) {
+                        System.out.println("Invalid input for " + parameter + ". It should be between " + minParam + " and " + maxParam + ".");
+                    } else {
+                        result.append("&").append(parameter).append("=").append(param); // Add string to recQuery
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input for " + parameter + ". Please enter a valid integer.");
+                }
+            } else {
+                return; // No input, leave the result as it was
+            }
+        }
+    }
 
+    private void handleDoubleParameter(String parameter, Double minParam, Double maxParam, String message, StringBuilder result){
+        System.out.print(message);
+        while (true) {
+            String paramInput = scanner.nextLine();
+            if (!paramInput.isEmpty()) {
+                try {
+                    Double param = Double.parseDouble(paramInput);
+                    if (param < minParam || param > maxParam) {
+                        System.out.println("Invalid input for " + parameter + ". It should be between " + minParam + " and " + maxParam + ".");
+                    } else {
+                        result.append("&").append(parameter).append("=").append(param); // Add string to recQuery
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid input for " + parameter + ". Please enter a valid Double.");
+                }
+            } else {
+                return; // No input, leave the result as it was
+            }
+        }
     }
 
     // interface for finding music and getting music info
     private void exploreMusic() {
-        ArrayList<String> currentRecs = new ArrayList<>(); 
         while (true) {
 
             System.out.println("What would you like to do?");
             System.out.println("1: Get recommendations");
             System.out.println("2: See Genre Seeds");
             System.out.println("3: Get audio features of a trackID");
-            System.out.println("4: Exit");
+            System.out.println("4: Main Menu");
             int option = scanner.nextInt();
             scanner.nextLine();
             
@@ -505,8 +386,7 @@ public class Explore {
         }
     }
 
-    //TODO 
-    // addss trackIdSet items to My Explore playlist
+    // adds trackIdSet items to My Explore playlist
     private void addRecommendations(Set<String> trackIdSet) {
         try {
             String url = "https://api.spotify.com/v1/playlists/" + myExplorePlaylistId + "/tracks";
@@ -588,6 +468,8 @@ public class Explore {
 
                 // Process the information in the response
                 return response.toString();
+            } else if (responseCode == 204) {
+                System.out.println("No Content - The request has succeeded but returns no message body.");
             } else {
                 throw new RuntimeException("HttpResponseCode: " + responseCode);
             }
