@@ -94,11 +94,12 @@ public class Explore {
     private void checkPlaylists() {
         String myPlaylistData = getJsonString("me/playlists");
         ArrayList<String> myPlaylists = parseJSON(myPlaylistData, "name");
-        System.out.println("_________________________________________________________________________________________");
+        System.out.println("________________________________________________________________________________________________________");
         System.out.println("\nYour playlists:\n");
         for (String item : myPlaylists) {
             System.out.println(item);
         }
+        System.out.println();
         if (!myPlaylists.contains("My Explore")) {
             System.out.println("Creating \"My Explore\" playlist.");
             createPlaylist();
@@ -143,7 +144,6 @@ public class Explore {
     }
 
     //TODO - add an exit from anywhere
-    // currently wipes and replaces the playlist songs
     private void getRecommendations() {
         // initialize reccomendations query with the market Id
         StringBuilder recQuery = new StringBuilder();
@@ -227,7 +227,6 @@ public class Explore {
         // target_valence input
         handleDoubleParameter("target_valence", 0.0, 1.0, "target_valence (Enter a number between 0.0-1.0): ", recQuery);
 
-
         // make the recommendations query and then store in a Json array
         String recsDataString = getJsonString(recQuery.toString());
         Gson gson = new Gson();
@@ -280,7 +279,22 @@ public class Explore {
 
         // add tracks to My Explore playlist
         if (!recsSet.isEmpty()) {
-            addRecommendations(recsSet);
+            System.out.println("Choose an option:");
+            System.out.println("1. Add your recommendations to My Explore");
+            System.out.println("2. Clear My Explore and then add your recommendations");
+            System.out.println("3. Exit with no actions");
+            while (true) {
+                String option = scanner.nextLine();
+                if (option.equals("1")) {
+                    addRecommendations(recsSet, "POST");
+                } else if (option.equals("2")) {
+                    addRecommendations(recsSet, "PUT");
+                } else if (option.equals("3")) {
+                    return;
+                } else {
+                    System.out.println("Invalid input. Please enter 1, 2 or 3.");
+                }
+            }
         }
     }
 
@@ -388,12 +402,12 @@ public class Explore {
     }
 
     // adds trackIdSet items to My Explore playlist
-    private void addRecommendations(Set<String> trackIdSet) {
+    private void addRecommendations(Set<String> trackIdSet, String method) {
         try {
             String url = "https://api.spotify.com/v1/playlists/" + myExplorePlaylistId + "/tracks";
             URL obj = new URL(url);
             HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            con.setRequestMethod("PUT");
+            con.setRequestMethod(method);
             con.setRequestProperty("Authorization", "Bearer " + accessToken);
             con.setRequestProperty("Content-Type", "application/json");
 
