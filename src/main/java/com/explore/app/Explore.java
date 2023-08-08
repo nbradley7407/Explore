@@ -21,7 +21,6 @@ import com.google.gson.JsonArray;
 /* TODO
  * MAIN GOAL: finish get recommendations
  *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them? Maybe use Spotify's /search endpoint?
- *     - Need to refactor getRecommendations so it isn't so long and repetitive
  * 
  * CRUD methods for "My Explore" playlist songs
  * figure out how to do Auth without copy/pasting into terminal manually
@@ -95,6 +94,8 @@ public class Explore {
     private void checkPlaylists() {
         String myPlaylistData = getJsonString("me/playlists");
         ArrayList<String> myPlaylists = parseJSON(myPlaylistData, "name");
+        System.out.println("_________________________________________________________________________________________");
+        System.out.println("\nYour playlists:\n");
         for (String item : myPlaylists) {
             System.out.println(item);
         }
@@ -121,6 +122,7 @@ public class Explore {
             e.printStackTrace();
         }
     }
+    
     // create "My Explore" playlist
     private void createPlaylist() {
         try {
@@ -140,9 +142,8 @@ public class Explore {
         }
     }
 
-    //TODO - hashmap for adding specific OR all recommendations given to My Explore playlist
-    // Should add an exit from anywhere and input validation (double, int, String)
-    
+    //TODO - add an exit from anywhere
+    // currently wipes and replaces the playlist songs
     private void getRecommendations() {
         // initialize reccomendations query with the market Id
         StringBuilder recQuery = new StringBuilder();
