@@ -19,8 +19,9 @@ import com.google.gson.JsonArray;
 
 
 /* TODO
- * MAIN GOAL: finish get recommendations
+ * MAIN GOAL: tidy up getting recommendations
  *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them? Maybe use Spotify's /search endpoint?
+ *     - Might be nice to be able to print out a description of every parameter
  * 
  * CRUD methods for "My Explore" playlist songs
  * figure out how to do Auth without copy/pasting into terminal manually
@@ -229,6 +230,9 @@ public class Explore {
 
         // make the recommendations query and then store in a Json array
         String recsDataString = getJsonString(recQuery.toString());
+        if (recsDataString == null) {
+            return;
+        }
         Gson gson = new Gson();
         JsonObject jsonObject = gson.fromJson(recsDataString, JsonObject.class);
         JsonArray tracksArray = jsonObject.getAsJsonArray("tracks");
@@ -287,8 +291,10 @@ public class Explore {
                 String option = scanner.nextLine();
                 if (option.equals("1")) {
                     addRecommendations(recsSet, "POST");
+                    break;
                 } else if (option.equals("2")) {
                     addRecommendations(recsSet, "PUT");
+                    break;
                 } else if (option.equals("3")) {
                     return;
                 } else {
@@ -481,12 +487,11 @@ public class Explore {
                 }
                 reader.close();
 
-                // Process the information in the response
                 return response.toString();
             } else if (responseCode == 204) {
                 System.out.println("No Content - The request has succeeded but returns no message body.");
             } else {
-                throw new RuntimeException("HttpResponseCode: " + responseCode);
+                System.out.println("Request failed with HttpResponseCode " + responseCode + ": " + conn.getResponseMessage());
             }
         } catch (Exception e) {
             e.printStackTrace();
