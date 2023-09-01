@@ -16,7 +16,6 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject; 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;  
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -512,7 +511,6 @@ public class Explore {
         return null;
     }
 
-    // Use standard output to help user run bash script to retrieve access token
     private void getAccessToken() {
         try {    
             // Get authorization code from user
@@ -523,8 +521,8 @@ public class Explore {
                     + "&client_id=" + clientId
                     + "&scope=playlist-modify-private+playlist-read-private"
                     + "&redirect_uri=" + redirectURI);
-            System.out.println("\n\nEnter the code from the redirected URL: \n\n");
-            String code = scanner.nextLine();
+            System.out.println("\n\nEnter the entire redirected URL: \n\n");
+            String code = scanner.nextLine().substring(37);
             
             try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
                 String authorizationHeader = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
@@ -538,7 +536,7 @@ public class Explore {
                 httpPost.setEntity(new UrlEncodedFormEntity(params));
     
                 HttpResponse response = httpclient.execute(httpPost);
-                HttpEntity entity = response.getEntity();
+
                 if (response.getStatusLine().getStatusCode() == 200) {
                     String jsonResponse = EntityUtils.toString(response.getEntity());
                     JSONObject jsonObject = new JSONObject(jsonResponse);
