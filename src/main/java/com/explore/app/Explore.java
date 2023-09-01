@@ -16,6 +16,16 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject; 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonArray;  
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+import org.json.JSONObject;
 
 
 /* TODO
@@ -24,7 +34,7 @@ import com.google.gson.JsonArray;
  *     - Might be nice to be able to print out a description of every parameter
  * 
  * CRUD methods for "My Explore" playlist songs
- * figure out how to do Auth without copy/pasting into terminal manually
+ * figure out how to do Auth without copy/pasting into terminal manually (springboot webserver)
  * handling of refresh tokens
  * 
  * Maybe throw this in a Docker container when it's done
@@ -38,7 +48,7 @@ public class Explore {
     private String userId;
     private String clientId;
     private String redirectURI;
-    private String encoded;
+    private String clientSecret;
     private String accessToken;
     private String myExplorePlaylistId;
 
@@ -47,8 +57,9 @@ public class Explore {
         this.config      = loadConfig("config.properties");
         this.userId      = config.getProperty("user.id");
         this.clientId    = config.getProperty("client.id");
+        this.clientSecret= config.getProperty("client.secret");
         this.redirectURI = config.getProperty("redirect.uri");
-        this.encoded     = config.getProperty("encoded");
+
     }
     public static void main(String[] args) {
         Explore explore = new Explore();
@@ -56,6 +67,7 @@ public class Explore {
         explore.checkPlaylists();
         explore.mainLoop();
         explore.scanner.close();
+
     }
 
     // Interface for navigation through the program
@@ -268,11 +280,11 @@ public class Explore {
                     for (String id : recsMap.values()) {
                         recsSet.add(id);
                     }
-                    System.out.println("Added all tracks");
+                    System.out.println("Selected all tracks");
                     break;
                 } else if (recsMap.keySet().contains(option)) {
                     recsSet.add(recsMap.get(option));
-                    System.out.println("Added track " + option);
+                    System.out.println("Added track " + option + " to selections");
                 } else {
                     System.out.println("Invalid input. Please enter a number between 0 and " + n);
                 }
@@ -283,7 +295,7 @@ public class Explore {
 
         // add tracks to My Explore playlist
         if (!recsSet.isEmpty()) {
-            System.out.println("Choose an option:");
+            System.out.println("\nWhat would you like to do with your selections?");
             System.out.println("1. Add your recommendations to My Explore");
             System.out.println("2. Clear My Explore and then add your recommendations");
             System.out.println("3. Exit with no actions");
@@ -305,6 +317,7 @@ public class Explore {
     }
 
     //TODO : validate inputs
+    //handles parameters that take up to 5 strings
     private void handleMultiParameter(String parameter, String message, StringBuilder result){
         ArrayList<String> paramList = new ArrayList<>();
         while (true) {
@@ -445,7 +458,7 @@ public class Explore {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println("Your recommendations have been added to My Explore.");
+        System.out.println("Your recommendations have been added to My Explore.\n");
     }
 
     // list options of genre seeds to use in recommendations
@@ -468,7 +481,7 @@ public class Explore {
         }
     }
 
-    // getter for basic JSON response
+    // getter for JSON response
     private String getJsonString(String endpoint) {
         try {
             String apiUrl = "https://api.spotify.com/v1/" + endpoint;
@@ -491,7 +504,7 @@ public class Explore {
             } else if (responseCode == 204) {
                 System.out.println("No Content - The request has succeeded but returns no message body.");
             } else {
-                System.out.println("Request failed with HttpResponseCode " + responseCode + ": " + conn.getResponseMessage());
+                System.out.println("\nRequest failed with HttpResponseCode " + responseCode + ": " + conn.getResponseMessage());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -512,16 +525,28 @@ public class Explore {
                     + "&redirect_uri=" + redirectURI);
             System.out.println("\n\nEnter the code from the redirected URL: \n\n");
             String code = scanner.nextLine();
-
-            // get access token
-            System.out.println("\n\nRun the following bash script:\n\n");
-            System.out.println("echo\n\ncurl -s -H \"Authorization: Basic " + encoded + "\" "
-            + "-d grant_type=authorization_code "
-            + "-d code=" + code + " "
-            + "-d redirect_uri=" + redirectURI + " https://accounts.spotify.com/api/token " 
-            + "| jq -r '.access_token'");
-            System.out.println("\n\nEnter the given access token: ");
-            accessToken = scanner.nextLine();
+            
+            try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+                String authorizationHeader = Base64.getEncoder().encodeToString((clientId + ":" + clientSecret).getBytes());
+                HttpPost httpPost = new HttpPost("https://accounts.spotify.com/api/token");
+                httpPost.setHeader("Authorization", "Basic " + authorizationHeader);
+    
+                List<NameValuePair> params = new ArrayList<>();
+                params.add(new BasicNameValuePair("grant_type", "authorization_code"));
+                params.add(new BasicNameValuePair("code", code));
+                params.add(new BasicNameValuePair("redirect_uri", redirectURI));
+                httpPost.setEntity(new UrlEncodedFormEntity(params));
+    
+                HttpResponse response = httpclient.execute(httpPost);
+                HttpEntity entity = response.getEntity();
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    String jsonResponse = EntityUtils.toString(response.getEntity());
+                    JSONObject jsonObject = new JSONObject(jsonResponse);
+                    accessToken = jsonObject.getString("access_token");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,5 +1,7 @@
 # Ignore IDE specific files
 .vscode
+target
 
 # Ignore configuration file with sensitive information
 config.properties
+
