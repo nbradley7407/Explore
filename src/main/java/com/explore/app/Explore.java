@@ -3,9 +3,6 @@ package com.explore.app;
 import java.util.*;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Properties;
-import java.util.ArrayList;
-import java.util.Scanner;
 import java.lang.StringBuilder;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -28,12 +25,13 @@ import org.json.JSONObject;
 
 
 /* TODO
- * MAIN GOAL: tidy up getting recommendations
+ * Tidy up getting recommendations
  *     - Manually finding IDs for tracks, artists, albums, etc. is clunky. Is there a way to easily search them? Maybe use Spotify's /search endpoint?
- *     - Might be nice to be able to print out a description of every parameter
+ *     - Might be nice to be able to have an option to print out a description of every parameter
  * 
+ * Presets for recommendations (happy/sad, upbeat/mellow, workout, etc.)
  * CRUD methods for "My Explore" playlist songs
- * figure out how to do Auth without copy/pasting into terminal manually (springboot webserver)
+ * maybe move auth to webserver with Spring?
  * handling of refresh tokens
  * 
  * Maybe throw this in a Docker container when it's done
@@ -315,6 +313,29 @@ public class Explore {
         }
     }
 
+    // prints Song - Artist : id
+    private void seePlaylistSongIds(String playlistId) {
+        String playlistSongs = getJsonString("playlists/" + playlistId + "?fields=tracks.items%28track%28name%2Cartists%28name%29%2Cid%29%29");
+
+        Gson gson = new Gson();
+        JsonObject jsonObject = gson.fromJson(playlistSongs, JsonObject.class);
+        JsonObject tracksObject = jsonObject.getAsJsonObject("tracks");
+        JsonArray tracksArray = tracksObject.getAsJsonArray("items");
+        int n = tracksArray.size();
+
+        System.out.println();
+        for (int i=0;i<n;i++) {
+            JsonObject trackObject = tracksArray.get(i).getAsJsonObject();
+            JsonObject trackInfo = trackObject.getAsJsonObject("track");
+            String trackName = trackInfo.get("name").getAsString();
+            String trackArtist = trackInfo.getAsJsonArray("artists").get(0).getAsJsonObject().get("name").getAsString();
+            String trackId = trackInfo.get("id").getAsString();
+
+            String formattedLine = String.format("%-30s by: %-30s id: %s", trackName, trackArtist, trackId);
+            System.out.println(formattedLine);
+        }
+    }
+
     //TODO : validate inputs
     //handles parameters that take up to 5 strings
     private void handleMultiParameter(String parameter, String message, StringBuilder result){
@@ -394,7 +415,8 @@ public class Explore {
             System.out.println("1: Get recommendations");
             System.out.println("2: See Genre Seeds");
             System.out.println("3: Get audio features of a trackID");
-            System.out.println("4: Main Menu");
+            System.out.println("4: Get track ids from a playlist");
+            System.out.println("5: Main Menu");
             int option = scanner.nextInt();
             scanner.nextLine();
             
@@ -406,11 +428,16 @@ public class Explore {
                     seeGenreSeeds();
                     break;
                 case 3:
-                    System.out.println("Enter the trackID you want to get features from");
+                    System.out.println("Enter the track ID you want to get features from");
                     String track = scanner.nextLine();
                     getAudioFeatures(track);
                     break;
                 case 4:
+                    System.out.println("Enter the playlist ID you want to get track Ids from");
+                    String seePlaylistId = scanner.nextLine();
+                    seePlaylistSongIds(seePlaylistId);
+                    break;
+                case 5:
                     return;
                 default:
                     System.out.println("Invalid input. Please enter a number between x and y.");
@@ -480,7 +507,7 @@ public class Explore {
         }
     }
 
-    // getter for JSON response
+    // simple getter for JSON response
     private String getJsonString(String endpoint) {
         try {
             String apiUrl = "https://api.spotify.com/v1/" + endpoint;
