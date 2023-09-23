@@ -31,7 +31,6 @@ import org.json.JSONObject;
  * 
  * Presets for recommendations (happy/sad, upbeat/mellow, workout, etc.)
  * CRUD methods for "My Explore" playlist songs
- * maybe move auth to webserver with Spring?
  * handling of refresh tokens
  * 
  * Maybe throw this in a Docker container when it's done
@@ -48,6 +47,8 @@ public class Explore {
     private String clientSecret;
     private String accessToken;
     private String myExplorePlaylistId;
+    private String upbeatPreset;
+    private String mellowPreset;
 
     public Explore() {
         this.scanner     = new Scanner(System.in);
@@ -56,12 +57,16 @@ public class Explore {
         this.clientId    = config.getProperty("client.id");
         this.clientSecret= config.getProperty("client.secret");
         this.redirectURI = config.getProperty("redirect.uri");
-
+        this.accessToken = config.getProperty("access.token");
     }
     public static void main(String[] args) {
         Explore explore = new Explore();
-        explore.getAccessToken();
-        explore.checkPlaylists();
+        try {
+            explore.checkPlaylists();
+        } catch (Exception e) {
+            explore.getAccessToken();
+            explore.checkPlaylists();
+        }
         explore.mainLoop();
         explore.scanner.close();
 
@@ -568,6 +573,7 @@ public class Explore {
                     String jsonResponse = EntityUtils.toString(response.getEntity());
                     JSONObject jsonObject = new JSONObject(jsonResponse);
                     accessToken = jsonObject.getString("access_token");
+                    System.out.println("Your access token: " + accessToken);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
