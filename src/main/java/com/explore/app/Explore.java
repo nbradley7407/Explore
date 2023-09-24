@@ -81,27 +81,22 @@ public class Explore {
             System.out.println("2: Find new music");
             System.out.println("3: Exit");
     
-            if (scanner.hasNextInt()) {
-                int option = scanner.nextInt();
-                scanner.nextLine(); // Consume the newline character after reading the integer
-    
-                switch (option) {
-                    case 1:
-                        // TODO: Handle option 1 - Edit Explore playlist
-                        break;
-                    case 2:
-                        exploreMusic();
-                        break;
-                    case 3:
-                        scanner.close(); // Exit the entire program
-                        return;
-                    default:
-                        System.out.println("Invalid input. Please enter a number between 1 and 3.");
-                        break;
-                }
-            } else {
-                scanner.nextLine();
-                System.out.println("Invalid input. Please enter a number between 1 and 4.");
+            String option = scanner.nextLine();
+
+            switch (option) {
+                case "1":
+                    // TODO: Handle option 1 - Edit Explore playlist
+                    System.out.println("Functionality not yet constructed.");
+                    break;
+                case "2":
+                    exploreMusic();
+                    break;
+                case "3":
+                    scanner.close(); // Exit the entire program
+                    return;
+                default:
+                    System.out.println("Invalid input. Please enter a number between 1 and 3.");
+                    break;
             }
         }
     }
@@ -425,30 +420,29 @@ public class Explore {
             System.out.println("3: Get audio features of a trackID");
             System.out.println("4: Get track ids from a playlist");
             System.out.println("5: Main Menu");
-            int option = scanner.nextInt();
-            scanner.nextLine();
+            String option = scanner.nextLine();
             
             switch (option) {
-                case 1:
+                case "1":
                     getRecommendations();
                     break;
-                case 2:
+                case "2":
                     seeGenreSeeds();
                     break;
-                case 3:
+                case "3":
                     System.out.println("Enter the track ID you want to get features from");
                     String track = scanner.nextLine();
                     getAudioFeatures(track);
                     break;
-                case 4:
+                case "4":
                     System.out.println("Enter the playlist ID you want to get track Ids from");
                     String seePlaylistId = scanner.nextLine();
                     seePlaylistSongIds(seePlaylistId);
                     break;
-                case 5:
+                case "5":
                     return;
                 default:
-                    System.out.println("Invalid input. Please enter a number between x and y.");
+                    System.out.println("Invalid input. Please enter a number between 1 and 5.");
                     break;
             }
         }
@@ -576,11 +570,9 @@ public class Explore {
                     String jsonResponse = EntityUtils.toString(response.getEntity());
                     JSONObject jsonObject = new JSONObject(jsonResponse);
                     accessToken = jsonObject.getString("access_token");
-                    // System.out.println("Your access token: " + accessToken);
 
+                    // Set and save the updated token back to properties file
                     config.setProperty("access.token", accessToken);
-
-                    // Save the updated properties back to the file
                     try (FileOutputStream fileOutputStream = new FileOutputStream("config.properties")) {
                         config.store(fileOutputStream, null);
                     } catch (IOException e) {
