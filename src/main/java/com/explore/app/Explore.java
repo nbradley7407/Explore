@@ -8,6 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.BufferedReader;
 import java.io.OutputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import com.google.gson.Gson; 
 import com.google.gson.JsonObject; 
@@ -109,10 +110,12 @@ public class Explore {
     private void checkPlaylists() {
         String myPlaylistData = getJsonString("me/playlists");
         ArrayList<String> myPlaylists = parseJSON(myPlaylistData, "name");
+        ArrayList<String> myPlaylistsIds = parseJSON(myPlaylistData, "id");
         System.out.println("________________________________________________________________________________________________________");
         System.out.println("\nYour playlists:\n");
-        for (String item : myPlaylists) {
-            System.out.println(item);
+        for (int i=0;i<myPlaylists.size(); i++) {
+            String formattedLine = String.format("%-30s id: %s", myPlaylists.get(i), myPlaylistsIds.get(i));
+            System.out.println(formattedLine);
         }
         System.out.println();
         if (!myPlaylists.contains("My Explore")) {
@@ -573,7 +576,16 @@ public class Explore {
                     String jsonResponse = EntityUtils.toString(response.getEntity());
                     JSONObject jsonObject = new JSONObject(jsonResponse);
                     accessToken = jsonObject.getString("access_token");
-                    System.out.println("Your access token: " + accessToken);
+                    // System.out.println("Your access token: " + accessToken);
+
+                    config.setProperty("access.token", accessToken);
+
+                    // Save the updated properties back to the file
+                    try (FileOutputStream fileOutputStream = new FileOutputStream("config.properties")) {
+                        config.store(fileOutputStream, null);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
